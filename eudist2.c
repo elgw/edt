@@ -48,7 +48,7 @@ void edt2_brute_force(double * B, double * D, size_t M, size_t N, size_t P)
                     }
                 }
               }
-          D[elm] = d_min;
+          D[elm] = sqrt(d_min);
         }
       }
 
@@ -85,7 +85,7 @@ void matrix_show(double * M, size_t m, size_t n, size_t p)
       for(size_t ll = 0; ll<n ; ll++)
       {
         size_t pos = ll*m+kk + zz*m*n;
-        printf("%3.0f ", M[pos]);
+        printf("%3.2f ", M[pos]);
       }
       printf("\n");
     }
@@ -167,7 +167,7 @@ void pass34(double * D, double * D0, int * S, double * T, int L, int stride)
     //dt[u,y]:=f(u,s[q])
     if(verbose>1)
       printf("kk: %d, q: %d S[%d] = %d\n", kk, q, q, S[q]);
-    D[kk*stride] = pow(kk-S[q],2)+pow(D0[stride*S[q]], 2);
+    D[kk*stride] = sqrt(pow(kk-S[q],2)+pow(D0[stride*S[q]], 2));
     if(kk == T[q])
       q--;
   }
@@ -228,8 +228,6 @@ void edt2(double * B, double * D, size_t M, size_t N, size_t P)
     }
   }
 
-  for(size_t kk = 0; kk<M*N*P; kk++)
-    D[kk] = sqrt(D[kk]);
 
 // Third dimension
   memcpy(D0, D, M*N*P*sizeof(double));
