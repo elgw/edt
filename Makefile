@@ -1,3 +1,3 @@
 eudist2:
-	gcc -O3 -std=c99 -march=native eudist2.c -lm
+	gcc -O3 -std=c11 -march=native eudist2.c -lm
 

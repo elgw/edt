@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -205,6 +207,8 @@ int main(int argc, char ** argv)
   size_t M = 1024;
   size_t N = 1024;
 
+  printf("Problem size: %zu x %zu\n", M, N);
+
   double * B = calloc(M*N, sizeof(double));
   double * D = calloc(M*N, sizeof(double));
   double * D_bf = calloc(M*N, sizeof(double));
@@ -219,6 +223,7 @@ int main(int argc, char ** argv)
 
   printf("Edt^2:\n");
   clock_gettime(CLOCK_MONOTONIC, &start0);
+  for(int kk = 0 ; kk<1000; kk++)
   edt2(B, D, M, N);
   clock_gettime(CLOCK_MONOTONIC, &end0);
 
