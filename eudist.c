@@ -202,8 +202,8 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     matrix_show(D, M, N, P);
   }
 
-  int * S = malloc(nL*sizeof(double));
-  double * T = malloc(nL*sizeof(double));
+  int * S = malloc(nL*nL*sizeof(double));
+  double * T = malloc(nL*nL*sizeof(double));
 
   if(verbose>1)
   {
@@ -228,13 +228,14 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     for(int ll = 0; ll<M; ll++) // row
     {
       size_t offset = kk*M*N + ll;
-      pass34(D+offset, D0+offset, S, T, length, stride, dy);
+      // TODO: does the threads get separate copies of S and T?
+      pass34(D+offset, D0+offset, S+nL*kk, T+nL*kk, length, stride, dy);
     }
   }
 
 
   // Third dimension
-  memcpy(D0, D, M*N*P*sizeof(double));
+  memcpy(D0, D, M*N*P*sizeof(double)); // TODO: Threaded
 
   if(P>1)
   {
@@ -248,7 +249,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
         //        int kk = 2; int ll = 0;
         size_t offset = kk + ll*M;
         //printf("O: %zu S: %zu L: %zu\n", offset, stride, length);
-        pass34(D+offset, D0+offset, S, T, length, stride, dz);
+        pass34(D+offset, D0+offset, S+nL*kk, T+nL*kk, length, stride, dz);
       }
     }
   }
@@ -268,9 +269,9 @@ int main(int argc, char ** argv)
   /* Set up image dimensions */
   size_t M = 13;
   size_t N = 15;
-  size_t P = 2;
-  //  M = 100; N =100; P = 100;
-  M = 1024; N = 1024; P = 60;
+  size_t P = 21;
+ //  M = 90; N =91; P = 92;
+ // M = 1024; N = 1024; P = 60;
   printf("Problem size: %zu x %zu x %zu\n", M, N, P);
 
   /* Set up voxel size */
