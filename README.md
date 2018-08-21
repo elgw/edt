@@ -6,11 +6,16 @@ Using the algorithm descirbed by Meijster et al. Mishchenko claims that their Ma
 
  * `bwdist` in MATLAB uses all physical cores. On Intel 6700k, 4 threads are used. 1000 problems of size 1024x1024 took 12.4 s for the c code, 3.6 s for MATLAB, i.e., about the same time consumption in terms for TIMExTHREADS.
 
-## TODO
+## Timings:
 
- * Extend to 3D using startpost and stride technique.
- * Parallelize with one temp line per thread.
- * Compare to Mishchenko
+For a `1042x1024x60` image, using dx=dy != dz for `df_eudist` and `bwdistsc`
+```
+bwdist*: 0.766235
+df_eudist: 1.069094
+bwdistsc 5.282077
+```
+
+* isotropic voxels with `bwdist`.
 
 ## References:
  * Mishchenko, 2012.

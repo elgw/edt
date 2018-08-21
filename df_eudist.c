@@ -1,5 +1,6 @@
 #include "mex.h"
-#include "eudist2.c"
+#include "omp.h"
+#include "eudist.c"
 
 /*
  * Provides a MATLAB interface from eudist2.c for usage, 
@@ -8,8 +9,6 @@
 
 void mexFunction(int nlhs, mxArray *plhs[],int nrhs, const mxArray *prhs[]) 
 {
-
-  int nThreads = 4;
 
   if (nrhs<1 || nrhs>3) {
     mexErrMsgTxt("There should be 1 to three inputs.");
@@ -47,8 +46,7 @@ size_t d3 = 1;
 
   edt(V, D, 
       dim[0], dim[1], dim[2],
-      dx, dy, dz, 
-      nThreads);
+      dx, dy, dz);
 }
 
 
