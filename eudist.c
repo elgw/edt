@@ -8,7 +8,7 @@
 #include <math.h>
 #include <assert.h>
 #include <time.h>
- 	
+
 #include <omp.h>
 
 #ifndef verbose
@@ -30,7 +30,7 @@ void edt_brute_force(double * B, double * D, size_t M, size_t N, size_t P, doubl
       for(int pp = 0; pp<P; pp++)
       {
         double d_min = INFINITY; // Fallback, everything will be set to this if B is all zeros
-        size_t elm  =mm+ M*nn +M*N*pp; 
+        size_t elm  =mm+ M*nn +M*N*pp; // element to consider
         if(B[elm] == 1)
         {
           D[elm] = 0;
@@ -45,7 +45,7 @@ void edt_brute_force(double * B, double * D, size_t M, size_t N, size_t P, doubl
                 {
                   double d = pow(dx*(kk-mm),2)+pow(dy*(ll-nn),2)+pow(dz*(qq-pp),2);
                   if( d < d_min)
-                    if( ! ((kk == mm ) && (ll == nn) && (pp==qq)))
+                    if( ! ((kk == mm ) && (ll == nn) && (qq == pp)))
                     {
                       d_min = d;
                     }
@@ -54,7 +54,7 @@ void edt_brute_force(double * B, double * D, size_t M, size_t N, size_t P, doubl
           D[elm] = sqrt(d_min);
         }
       }
-
+return;
 }
 
 // round towards zero
@@ -124,7 +124,7 @@ void pass12(double * restrict B, double * restrict D, const size_t L, const doub
 
 }
 
-  void pass34(double * restrict D, double * restrict D0, int * restrict S, double * restrict T, const int L, const int stride, const double d)
+void pass34(double * restrict D, double * restrict D0, int * restrict S, double * restrict T, const int L, const int stride, const double d)
 {
   // 3: Forward
   int q = 0;
@@ -189,7 +189,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   // 
   // First dimension, pass 1 and 2
   //
-#pragma omp parallel for
+//#pragma omp parallel for
   for(size_t kk = 0; kk<N*P; kk++) // For each column
   {
     size_t offset = kk*M;
@@ -222,7 +222,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   int length = N;
   int stride = M;
 
-#pragma omp parallel for
+//#pragma omp parallel for
   for(int kk = 0; kk<P; kk++) // slice
   {
     for(int ll = 0; ll<M; ll++) // row
@@ -241,7 +241,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   {
     length = P;
     stride = M*N;
-#pragma omp parallel for
+//#pragma omp parallel for
     for(int kk = 0; kk<M; kk++)
     {
       for(int ll = 0; ll<N; ll++)
@@ -260,23 +260,10 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
 
 }
 
-
-int main(int argc, char ** argv)
+int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
 {
-
-  int nThreads = 4;
-
-  /* Set up image dimensions */
-  size_t M = 13;
-  size_t N = 15;
-  size_t P = 21;
- //  M = 90; N =91; P = 92;
- // M = 1024; N = 1024; P = 60;
   printf("Problem size: %zu x %zu x %zu\n", M, N, P);
-
-  /* Set up voxel size */
-  double dx = 120; double dy = 120; double dz = 300;
-  //  dx = 1; dy = 1; dz = 1;
+  printf("Voxel size: %.2f x %.2f x %.2f\n", dx, dy, dz);
 
   /* Allocate memory */
   double * B = calloc(M*N*P, sizeof(double));
@@ -289,28 +276,26 @@ int main(int argc, char ** argv)
   /* Initialize binary mask */
   B[5*2+2] = 1;
   B[3] = 1;
-  printf("Binary mask:\n");
-  matrix_show(B, M, N, P);
+  //  printf("Binary mask:\n");
+  //  matrix_show(B, M, N, P);
 
-  printf("Edt^2:\n");
+  //  printf("Edt^2:\n");
+  // matrix_show(D, M, N, P);
+  // printf("Edt^2 -- brute force reference:\n");
+  clock_gettime(CLOCK_MONOTONIC, &start1);
+  edt_brute_force(B, D_bf, 
+      M, N, P, 
+      dx, dy, dz);
+
+  clock_gettime(CLOCK_MONOTONIC, &end1);
+
   clock_gettime(CLOCK_MONOTONIC, &start0);
-  edt(B, D, M, N, P,
+  edt(B, D, 
+      M, N, P,
       dx, dy, dz);
 
   clock_gettime(CLOCK_MONOTONIC, &end0);
 
-  matrix_show(D, M, N, P);
-  int has_ref = 0;
-  printf("Edt^2 -- brute force reference:\n");
-  clock_gettime(CLOCK_MONOTONIC, &start1);
-  if(M < 100 && N<100)
-  {
-    edt_brute_force(B, D_bf, M, N, P, dx, dy, dz);
-    has_ref = 1;
-  } else {
-    printf("Too large problem, not calculating reference distances\n");
-  }
-  clock_gettime(CLOCK_MONOTONIC, &end1);
 
   double elapsed0, elapsed1;
   elapsed0 = (end0.tv_sec - start0.tv_sec);
@@ -320,16 +305,29 @@ int main(int argc, char ** argv)
 
   matrix_show(D_bf, M, N, P);
 
-  if(has_ref == 1)
-  {
-    for(size_t kk = 0; kk<M*N*P; kk++)
-      assert(fabs(D[kk] - D_bf[kk]) < 10e-5);
+  int wrong_result = 0;
+  double max_error = 0;
 
-    printf("Correct result\n");
-  }
-  else 
+  for(size_t kk = 0; kk<M*N*P; kk++)
   {
-    printf("Correctness not tested\n");
+    double err = fabs(D[kk] - D_bf[kk]); 
+    if(err > max_error)
+      max_error = err;
+      
+    if(max_error > 10e-5)
+    {
+      wrong_result = 1;
+    }
+  }
+
+    printf("Largest difference: %f\n", max_error);
+
+  if(wrong_result)
+  {
+    printf("Wrong result! ");
+  } else
+  {
+    printf("Correct! ");
   }
 
   printf("Edt: %f s, bf: %f s\n", elapsed0, elapsed1);
@@ -337,6 +335,47 @@ int main(int argc, char ** argv)
   free(D_bf);
   free(D);
   free(B);
+
+  return wrong_result;
+}
+
+size_t randi(size_t max)
+{ // return a value in [0,max]
+
+  size_t val = (size_t) ( (double) rand()/ (double) RAND_MAX * max );
+
+  return val;
+}
+
+double randf(double min, double max)
+{
+  return min + (double) rand() / (double) RAND_MAX * (max-min);
+}
+
+int main(int argc, char ** argv)
+{
+
+  printf("Testing random sizes and voxel sizes\n");
+  printf("Abort with Ctrl+C\n");
+
+  test_size(8, 96, 54, 1.812511, 3.9250, 13.298);
+
+  while(1)
+  {
+    size_t M = randi(45)+5;
+    size_t N = randi(45)+5;
+    size_t P = randi(45)+5;
+    double dx = randf(0.1, 20);
+    double dy = randf(0.1, 20);
+    double dz = randf(0.1, 20);
+    
+    if(test_size(M,N,P, dx, dy, dz) > 0)
+    {
+      printf("Wrong result for M=%zu, N=%zu, P=%zu, dx=%f, dy=%f, dz=%f\n",
+          M, N, P, dx, dy, dz);
+      assert(0);
+    }
+  }
 
   return 0;
 }
