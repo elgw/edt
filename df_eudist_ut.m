@@ -6,14 +6,10 @@ test_correct_2D()
 
 test_speed_image()
 
-B = zeros(1024, 1024, 512);
-for kk = 1:50
-    B(randi(size(B,1)), randi(size(B,2)), randi(size(B,3))) = 1;
-end
-D = df_eudist(B);
-
-%test_speed_2D()
-%test_speed_3D()
+test_speed_2D()
+dprintpdf('timings_2D.pdf')
+test_speed_3D()
+dprintpdf('timings_3D.pdf')
 
 end
 

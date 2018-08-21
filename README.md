@@ -14,8 +14,10 @@ bwdist*: 0.766235
 df_eudist: 1.069094
 bwdistsc 5.282077
 ```
-
 * isotropic voxels with `bwdist`.
+
+![2D timings](timings_2D.png)
+![3D timings](timings_3D.png)
 
 ## References:
  * Mishchenko, 2012.
