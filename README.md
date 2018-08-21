@@ -19,6 +19,9 @@ bwdistsc 5.282077
 ![2D timings](timings_2D.png)
 ![3D timings](timings_3D.png)
 
+ * 3D timings suggests that there are some memory issues to be sorted out.
+ * Note that `df_eudist` does not have the special case where the voxel size is `1 x 1 x 1`.
+
 ## References:
  * Mishchenko, 2012.
  * Meijster et al., 2000.
