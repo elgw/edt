@@ -8,30 +8,12 @@
 #include <math.h>
 #include <assert.h>
 #include <time.h>
-#include <pthread.h>
+ 	
+#include <omp.h>
 
 #ifndef verbose
 #define verbose 1
 #endif
-
-typedef struct{
-  double * B; // binary mask
-  double * D; // Distance
-  double * D0; // temporary distance
-  // problem size
-  size_t  M;
-  size_t  N;
-  size_t  P;
-
-  // For pass 3 and 4
-  int * S;
-  double * T;
-
-  double delta;
-  
-  int thId;
-  int nThreads;
-} thread_data;
 
 
 void edt_brute_force(double * B, double * D, size_t M, size_t N, size_t P, double dx, double dy, double dz)
@@ -115,7 +97,7 @@ void matrix_show(double * M, size_t m, size_t n, size_t p)
 }
 
 
-void pass12(double * B, double * D, size_t L, double dx)
+void pass12(double * restrict B, double * restrict D, const size_t L, const double dx)
 {
   /* Pass 1 and 2 for a line (stride 1, since only run along the first dimension) */
 
@@ -142,28 +124,7 @@ void pass12(double * B, double * D, size_t L, double dx)
 
 }
 
-void pass12_st(double * B, double * D, size_t M, size_t N, size_t P, double dx)
-{
-  for(size_t kk = 0; kk<N*P; kk++) // For each column
-  {
-    size_t offset = kk*M;
-    pass12(B+offset, D+offset, M, dx);
-  }
-}
-
-void * pass12_t(void * data)
-{
-  thread_data * da = (thread_data *) data;
-
-  for(size_t kk = da->thId; kk<da->N*da->P; kk=kk+da->nThreads) // For each column
-  {
-    size_t offset = kk*da->M;
-    pass12(da->B+offset, da->D+offset, da->M, da->delta);
-  }
-  return NULL;
-}
-
-void pass34(double * D, double * D0, int * S, double * T, int L, int stride, double d)
+  void pass34(double * restrict D, double * restrict D0, int * restrict S, double * restrict T, const int L, const int stride, const double d)
 {
   // 3: Forward
   int q = 0;
@@ -218,8 +179,7 @@ void pass34(double * D, double * D0, int * S, double * T, int L, int stride, dou
 
 
 void edt(double * B, double * D, size_t M, size_t N, size_t P, 
-    double dx, double dy, double dz, 
-    int nThreads)
+    double dx, double dy, double dz)
 {
   // Euclidean distance transform from objects in M, into D
   // Matrices are of size M x N
@@ -229,37 +189,11 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   // 
   // First dimension, pass 1 and 2
   //
-  if(nThreads == 1)
+#pragma omp parallel for
+  for(size_t kk = 0; kk<N*P; kk++) // For each column
   {
-    pass12_st(B, D, M, N, P, dx);
-  } else {
-    pthread_t * thrs = malloc(nThreads*sizeof(pthread_t));
-    thread_data ** tdata = malloc(nThreads*sizeof(thread_data *));
-    for(int kk = 0; kk<nThreads; kk++)
-    {
-      tdata[kk] = malloc(sizeof(thread_data));
-      tdata[kk]->B = B;
-      tdata[kk]->D = D;
-      tdata[kk]->M = M;
-      tdata[kk]->N = N;
-      tdata[kk]->P = P;
-      tdata[kk]->delta = dx;
-      tdata[kk]->thId = kk;
-      tdata[kk]->nThreads = nThreads;
-    }
-
-    for(int kk = 0; kk<nThreads; kk++)    
-    {
-      int iret = pthread_create(&thrs[kk], NULL, pass12_t, (void *) tdata[kk]);
-      if(iret != 0)
-      {
-        printf("Thread creation failed\n");
-        assert(0);
-      }
-    }
-
-    for(int kk = 0; kk<nThreads; kk++)
-      pthread_join(thrs[kk], NULL);
+    size_t offset = kk*M;
+    pass12(B+offset, D+offset, M, dx);
   }
 
   if(verbose>1)
@@ -288,6 +222,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   int length = N;
   int stride = M;
 
+#pragma omp parallel for
   for(int kk = 0; kk<P; kk++) // slice
   {
     for(int ll = 0; ll<M; ll++) // row
@@ -305,6 +240,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   {
     length = P;
     stride = M*N;
+#pragma omp parallel for
     for(int kk = 0; kk<M; kk++)
     {
       for(int ll = 0; ll<N; ll++)
@@ -327,7 +263,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
 int main(int argc, char ** argv)
 {
 
-  int nThreads = 1;
+  int nThreads = 4;
 
   /* Set up image dimensions */
   size_t M = 13;
@@ -358,7 +294,7 @@ int main(int argc, char ** argv)
   printf("Edt^2:\n");
   clock_gettime(CLOCK_MONOTONIC, &start0);
   edt(B, D, M, N, P,
-      dx, dy, dz, nThreads);
+      dx, dy, dz);
 
   clock_gettime(CLOCK_MONOTONIC, &end0);
 
