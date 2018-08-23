@@ -12,12 +12,8 @@
 // #include <omp.h>
 
 #ifndef verbose
-#define verbose 2
+#define verbose 0
 #endif
-
-/* 
- * Fails for non-integer deltas.
- */
 
 size_t randi(size_t max)
 { // return a value in [0,max]
@@ -114,12 +110,14 @@ void matrix_show(double * M, size_t m, size_t n, size_t p)
 }
 
 
-void pass12(double * restrict B, double * restrict D, const size_t L, const double dx)
+void pass12(double * restrict B, double * restrict D, const size_t L, const double dx, double lmax)
 {
   /* Pass 1 and 2 for a line (stride 1, since only run along the first dimension) */
 
+  lmax = INFINITY;
+
   // Pass 1
-  double d = INFINITY;
+  double d = lmax;
   for( size_t ll = 0; ll<L; ll++) // For each row
   {
     d = d + dx;
@@ -129,7 +127,7 @@ void pass12(double * restrict B, double * restrict D, const size_t L, const doub
   }
 
   // Pass 2
-  d = INFINITY;
+  d = lmax;
   for( size_t ll = L ; ll-- > 0; ) // For each row
   {
     d = d + dx;
@@ -145,11 +143,6 @@ void pass34(double * restrict D, double * restrict D0,
     int * restrict S, double * restrict T, 
     const int L, const int stride, const double d)
 {
- 
- printf("\n 34-lines:\n"); 
-  for(int kk = 0; kk<L; kk++)
-    printf("%f ", D[kk*stride]);
-  printf("\n");
   // 3: Forward
   int q = 0;
   double w = 0;
@@ -161,17 +154,18 @@ void pass34(double * restrict D, double * restrict D0,
   {
     // f(t[q],s[q]) > f(t[q], u)
     // f(x,i) = (x-i)^2 + g(i)^2
-    while(q >= 0 && ( (pow(d*(T[q]-S[q]),2) + pow(D[stride*S[q]],2)) > 
+    while(q >= 0 && ( (pow(d*(T[q]-S[q]),2) + pow(D[stride*S[q]],2)) >=
                       (pow(d*(T[q]-u), 2) +  pow(D[stride*u],2)) ) )
       q--;
 
     if(q<0)
     {
-      if(verbose > 2)
-        printf("reset\n");
-      q = 0;
+     q = 0;
       S[0] = u;
-    }
+      T[0] = 0;
+      if(verbose > 2)
+        printf("reset, S[0] = %d\n", S[0]);
+     }
     else
     {
       // w = 1 + Sep(s[q],u)
@@ -179,33 +173,38 @@ void pass34(double * restrict D, double * restrict D0,
       // where division is rounded off towards zero
       //
       // TODO: derive correctly for non-unit step length
-      // Probably the floor is the problem
-      w = 1 + floor0( ( pow(d*u,2)  - pow(d*S[q],2) 
-                     + pow(D[stride*u],2) - pow(D[stride*S[q]],2))/(2*d2*(u-S[q])));
+      w = 1 + floor0( ( pow(d*u,2)  - pow(d*(double) S[q],2) 
+                     + pow(D[stride*u],2) - pow(D[stride*S[q]],2))/(d2*2*(u-(double) S[q])));
       // because of overflow, w is double. T does not have to be
       // double
-      if(verbose > 3)
+     // printf("q: %d, u: %d, S[q]: %d, D[stride*u]: %f D[stride*S[q]] %f, w: %f\n", q, u, S[q], D[stride*u], D[stride*S[q]], w);
+      if(verbose > 0)
         printf("u/kk: %d, S[q] = %d, q: %d w: %f\n", u, S[q], q, w);
 
       if(w<L)
       {
         q++;
-        S[q] = (int) u;
-        T[q] = (int) w;
+        S[q] = (int) u; // The point where the segment is a minimizer
+        T[q] = (int) w; // The first pixel of the segment
       }
     }
-    printf("%d(%d,%f) ", q, S[q], T[q]);
-
+if(0){
+    printf(" #, minPos, firstPixel, minValue\n"); 
+    for(int tt = 0; tt<=q; tt++)
+    {
+      printf(" %d, %6d, %6.0f, %6.2f\n", tt, S[tt], T[tt], D[stride*S[tt]]);
+    }
+}
   }
 
   // 4: Backward  
   for(int u = L-1; u > -1 ; u--)
   {
     //dt[u,y]:=f(u,s[q])
-    //if(verbose>3)
+    if(verbose>3)
       printf("u: %d, q: %d S[%d] = %d\n", u, q, q, S[q]);
     D[u*stride] = sqrt(pow(d*(u-S[q]),2)+pow(D0[stride*S[q]], 2));
-    if(u == T[q])
+    if(u == (int) T[q])
       q--;
   }
 }
@@ -226,7 +225,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   for(size_t kk = 0; kk<N*P; kk++) // For each column
   {
     size_t offset = kk*M;
-    pass12(B+offset, D+offset, M, dx);
+    pass12(B+offset, D+offset, M, dx, nL*2);
   }
 
   if(verbose>1)
@@ -293,6 +292,10 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     matrix_show(D, M, N, P);
   }
 
+  if(0)
+  for(size_t kk = 0; kk<M*N*P; kk++)
+    if(D[kk]>=2*nL)
+      D[kk] = INFINITY;
 
   free(D0);
   free(T);
@@ -315,15 +318,18 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   struct timespec start0, end0, start1, end1;
 
   /* Initialize binary mask */
-  size_t nB = randi(10);
+  size_t nB = randi(M*N*P);
   printf("Setting %zu random elements to 1 in B\n", nB);
   for(int bb = 0; bb<nB; bb++)
     B[randi(M*N*P-1)] = 1;
 
   //B[5*2+2] = 1;
   //B[3] = 1;
+  if(verbose>0)
+  {
   printf("Binary mask:\n");
   matrix_show(B, M, N, P);
+  }
 
   //  printf("Edt^2:\n");
   // matrix_show(D, M, N, P);
@@ -348,8 +354,11 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   elapsed1 = (end1.tv_sec - start1.tv_sec);
   elapsed1 += (end1.tv_nsec - start1.tv_nsec) / 1000000000.0;
 
+  if(verbose>0)
+  {
   printf("D_bf:\n");
   matrix_show(D_bf, M, N, P);
+  }
 
   int wrong_result = 0;
   double max_error = 0;
@@ -381,7 +390,8 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   free(D_bf);
   free(D);
   free(B);
-
+  printf(".\n"); 
+  fflush(stdout);
   return wrong_result;
 }
 
@@ -404,10 +414,10 @@ int main(int argc, char ** argv)
     printf(" --> Test %zu\n", nTest);
     size_t M = randi(15)+5;
     size_t N = randi(15)+5;
-    size_t P = 1; //randi(45)+5;
-    double dx = 1;//randf(0.1, 20); // wrong result when dx != 1
-    double dy = 1;//randf(0.1, 20);
-    double dz = 1;//randf(0.1, 20);
+    size_t P = randi(45)+5;
+    double dx = randf(0.1, 20); // wrong result when dx != 1
+    double dy = randf(0.1, 20);
+    double dz = randf(0.1, 20);
     
     if(test_size(M,N,P, dx, dy, dz) > 0)
     {
