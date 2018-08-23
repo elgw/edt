@@ -15,6 +15,10 @@
 #define verbose 2
 #endif
 
+/* 
+ * Fails for non-integer deltas.
+ */
+
 size_t randi(size_t max)
 { // return a value in [0,max]
 
@@ -141,6 +145,11 @@ void pass34(double * restrict D, double * restrict D0,
     int * restrict S, double * restrict T, 
     const int L, const int stride, const double d)
 {
+ 
+ printf("\n 34-lines:\n"); 
+  for(int kk = 0; kk<L; kk++)
+    printf("%f ", D[kk*stride]);
+  printf("\n");
   // 3: Forward
   int q = 0;
   double w = 0;
@@ -170,6 +179,7 @@ void pass34(double * restrict D, double * restrict D0,
       // where division is rounded off towards zero
       //
       // TODO: derive correctly for non-unit step length
+      // Probably the floor is the problem
       w = 1 + floor0( ( pow(d*u,2)  - pow(d*S[q],2) 
                      + pow(D[stride*u],2) - pow(D[stride*S[q]],2))/(2*d2*(u-S[q])));
       // because of overflow, w is double. T does not have to be
@@ -184,6 +194,7 @@ void pass34(double * restrict D, double * restrict D0,
         T[q] = (int) w;
       }
     }
+    printf("%d(%d,%f) ", q, S[q], T[q]);
 
   }
 
@@ -191,7 +202,7 @@ void pass34(double * restrict D, double * restrict D0,
   for(int u = L-1; u > -1 ; u--)
   {
     //dt[u,y]:=f(u,s[q])
-    if(verbose>3)
+    //if(verbose>3)
       printf("u: %d, q: %d S[%d] = %d\n", u, q, q, S[q]);
     D[u*stride] = sqrt(pow(d*(u-S[q]),2)+pow(D0[stride*S[q]], 2));
     if(u == T[q])
@@ -307,7 +318,7 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   size_t nB = randi(10);
   printf("Setting %zu random elements to 1 in B\n", nB);
   for(int bb = 0; bb<nB; bb++)
-    B[randi(M*N*P)-1] = 1;
+    B[randi(M*N*P-1)] = 1;
 
   //B[5*2+2] = 1;
   //B[3] = 1;
@@ -391,10 +402,10 @@ int main(int argc, char ** argv)
   {
     nTest++;
     printf(" --> Test %zu\n", nTest);
-    size_t M = 3; //randi(15)+5;
+    size_t M = randi(15)+5;
     size_t N = randi(15)+5;
-    size_t P = 1; // randi(45)+5;
-    double dx = 2.1;//randf(0.1, 20); // wrong result when dx != 1
+    size_t P = 1; //randi(45)+5;
+    double dx = 1;//randf(0.1, 20); // wrong result when dx != 1
     double dy = 1;//randf(0.1, 20);
     double dz = 1;//randf(0.1, 20);
     
