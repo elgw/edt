@@ -9,11 +9,24 @@
 #include <assert.h>
 #include <time.h>
 
-#include <omp.h>
+// #include <omp.h>
 
 #ifndef verbose
-#define verbose 1
+#define verbose 2
 #endif
+
+size_t randi(size_t max)
+{ // return a value in [0,max]
+
+  size_t val = (size_t) ( (double) rand()/ (double) RAND_MAX * max );
+
+  return val;
+}
+
+double randf(double min, double max)
+{
+  return min + (double) rand() / (double) RAND_MAX * (max-min);
+}
 
 
 void edt_brute_force(double * B, double * D, size_t M, size_t N, size_t P, double dx, double dy, double dz)
@@ -124,19 +137,23 @@ void pass12(double * restrict B, double * restrict D, const size_t L, const doub
 
 }
 
-void pass34(double * restrict D, double * restrict D0, int * restrict S, double * restrict T, const int L, const int stride, const double d)
+void pass34(double * restrict D, double * restrict D0, 
+    int * restrict S, double * restrict T, 
+    const int L, const int stride, const double d)
 {
   // 3: Forward
   int q = 0;
   double w = 0;
   S[0] = 0;
   T[0] = 0;
+  double d2 = d*d;
 
-  for(int kk = 1; kk<L; kk++) // For each column
+  for(int u = 1; u<L; u++) // For each column
   {
     // f(t[q],s[q]) > f(t[q], u)
     // f(x,i) = (x-i)^2 + g(i)^2
-    while(q>=0 && ((pow(d*(T[q]-S[q]),2) + pow(D[stride*S[q]],2)) > (pow(d*(T[q]-kk), 2) + pow(D[stride*kk],2))))
+    while(q >= 0 && ( (pow(d*(T[q]-S[q]),2) + pow(D[stride*S[q]],2)) > 
+                      (pow(d*(T[q]-u), 2) +  pow(D[stride*u],2)) ) )
       q--;
 
     if(q<0)
@@ -144,35 +161,40 @@ void pass34(double * restrict D, double * restrict D0, int * restrict S, double 
       if(verbose > 2)
         printf("reset\n");
       q = 0;
-      S[0] = kk;
+      S[0] = u;
     }
     else
     {
       // w = 1 + Sep(s[q],u)
-      // Sep(i,u) = (u^2-i^2+g(u)^2-g(i)^2) div (2(u-i))
-      w = 1 + floor0(d*(pow(kk,2)-pow(S[q],2)) 
-          + pow(D[stride*kk],2) - pow(D[stride*S[q]],2))/(2*d*(kk-S[q]));
-      if(verbose > 2)
-        printf("u/kk: %d, S[q] = %d, q: %d w: %f\n", kk, S[q], q, w);
+      // Sep(i,u) = (u^2-i^2 +g(u)^2-g(i)^2) div (2(u-i))
+      // where division is rounded off towards zero
+      //
+      // TODO: derive correctly for non-unit step length
+      w = 1 + floor0( ( pow(d*u,2)  - pow(d*S[q],2) 
+                     + pow(D[stride*u],2) - pow(D[stride*S[q]],2))/(2*d2*(u-S[q])));
+      // because of overflow, w is double. T does not have to be
+      // double
+      if(verbose > 3)
+        printf("u/kk: %d, S[q] = %d, q: %d w: %f\n", u, S[q], q, w);
 
-      if(w<(int) L)
+      if(w<L)
       {
         q++;
-        S[q] = kk;
-        T[q] = w;
+        S[q] = (int) u;
+        T[q] = (int) w;
       }
     }
 
   }
 
   // 4: Backward  
-  for(int kk = L-1; kk > -1 ; kk--)
+  for(int u = L-1; u > -1 ; u--)
   {
     //dt[u,y]:=f(u,s[q])
-    if(verbose>1)
-      printf("kk: %d, q: %d S[%d] = %d\n", kk, q, q, S[q]);
-    D[kk*stride] = sqrt(pow(d*(kk-S[q]),2)+pow(D0[stride*S[q]], 2));
-    if(kk == T[q])
+    if(verbose>3)
+      printf("u: %d, q: %d S[%d] = %d\n", u, q, q, S[q]);
+    D[u*stride] = sqrt(pow(d*(u-S[q]),2)+pow(D0[stride*S[q]], 2));
+    if(u == T[q])
       q--;
   }
 }
@@ -205,12 +227,6 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   int * S = malloc(nL*nL*sizeof(double));
   double * T = malloc(nL*nL*sizeof(double));
 
-  if(verbose>1)
-  {
-    printf("D2:\n");
-    matrix_show(D, M, N, P);
-  }
-
   //maintain only one line, not all of this
   double * D0 = malloc(M*N*P*sizeof(double));
   memcpy(D0, D, M*N*P*sizeof(double));
@@ -231,6 +247,12 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
       // TODO: does the threads get separate copies of S and T?
       pass34(D+offset, D0+offset, S+nL*kk, T+nL*kk, length, stride, dy);
     }
+  }
+
+  if(verbose>1)
+  {
+    printf("D2:\n");
+    matrix_show(D, M, N, P);
   }
 
 
@@ -254,11 +276,19 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     }
   }
 
+  if(verbose>1)
+  {
+    printf("D3:\n");
+    matrix_show(D, M, N, P);
+  }
+
+
   free(D0);
   free(T);
   free(S);
 
 }
+
 
 int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
 {
@@ -274,10 +304,15 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   struct timespec start0, end0, start1, end1;
 
   /* Initialize binary mask */
-  B[5*2+2] = 1;
-  B[3] = 1;
-  //  printf("Binary mask:\n");
-  //  matrix_show(B, M, N, P);
+  size_t nB = randi(10);
+  printf("Setting %zu random elements to 1 in B\n", nB);
+  for(int bb = 0; bb<nB; bb++)
+    B[randi(M*N*P)-1] = 1;
+
+  //B[5*2+2] = 1;
+  //B[3] = 1;
+  printf("Binary mask:\n");
+  matrix_show(B, M, N, P);
 
   //  printf("Edt^2:\n");
   // matrix_show(D, M, N, P);
@@ -296,13 +331,13 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
 
   clock_gettime(CLOCK_MONOTONIC, &end0);
 
-
   double elapsed0, elapsed1;
   elapsed0 = (end0.tv_sec - start0.tv_sec);
   elapsed0 += (end0.tv_nsec - start0.tv_nsec) / 1000000000.0;
   elapsed1 = (end1.tv_sec - start1.tv_sec);
   elapsed1 += (end1.tv_nsec - start1.tv_nsec) / 1000000000.0;
 
+  printf("D_bf:\n");
   matrix_show(D_bf, M, N, P);
 
   int wrong_result = 0;
@@ -339,38 +374,33 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   return wrong_result;
 }
 
-size_t randi(size_t max)
-{ // return a value in [0,max]
-
-  size_t val = (size_t) ( (double) rand()/ (double) RAND_MAX * max );
-
-  return val;
-}
-
-double randf(double min, double max)
-{
-  return min + (double) rand() / (double) RAND_MAX * (max-min);
-}
-
 int main(int argc, char ** argv)
 {
 
   printf("Testing random sizes and voxel sizes\n");
+  printf("TODO: Present a summary when aborting\n");
   printf("Abort with Ctrl+C\n");
 
-  test_size(8, 96, 54, 1.812511, 3.9250, 13.298);
+//  test_size(8, 9, 1, 1.812511, 3.9250, 13.298);
+//  test_size(8, 9, 1, 1, 2, 1);
 
+//  return 0;
+
+  size_t nTest = 0;
   while(1)
   {
-    size_t M = randi(45)+5;
-    size_t N = randi(45)+5;
-    size_t P = randi(45)+5;
-    double dx = randf(0.1, 20);
-    double dy = randf(0.1, 20);
-    double dz = randf(0.1, 20);
+    nTest++;
+    printf(" --> Test %zu\n", nTest);
+    size_t M = 3; //randi(15)+5;
+    size_t N = randi(15)+5;
+    size_t P = 1; // randi(45)+5;
+    double dx = 2.1;//randf(0.1, 20); // wrong result when dx != 1
+    double dy = 1;//randf(0.1, 20);
+    double dz = 1;//randf(0.1, 20);
     
     if(test_size(M,N,P, dx, dy, dz) > 0)
     {
+    printf(" --! Test %zu failed\n", nTest);
       printf("Wrong result for M=%zu, N=%zu, P=%zu, dx=%f, dy=%f, dz=%f\n",
           M, N, P, dx, dy, dz);
       assert(0);
