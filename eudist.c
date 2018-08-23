@@ -110,14 +110,12 @@ void matrix_show(double * M, size_t m, size_t n, size_t p)
 }
 
 
-void pass12(double * restrict B, double * restrict D, const size_t L, const double dx, double lmax)
+void pass12(double * restrict B, double * restrict D, const size_t L, const double dx)
 {
   /* Pass 1 and 2 for a line (stride 1, since only run along the first dimension) */
 
-  lmax = INFINITY;
-
   // Pass 1
-  double d = lmax;
+  double d = INFINITY;
   for( size_t ll = 0; ll<L; ll++) // For each row
   {
     d = d + dx;
@@ -127,7 +125,7 @@ void pass12(double * restrict B, double * restrict D, const size_t L, const doub
   }
 
   // Pass 2
-  d = lmax;
+  d = INFINITY;
   for( size_t ll = L ; ll-- > 0; ) // For each row
   {
     d = d + dx;
@@ -136,12 +134,15 @@ void pass12(double * restrict B, double * restrict D, const size_t L, const doub
     if(d<D[ll])
       D[ll] = d;
   }
-
+return;
 }
 
-void pass34(double * restrict D, double * restrict D0, 
-    int * restrict S, double * restrict T, 
-    const int L, const int stride, const double d)
+void pass34(double * restrict D, // Read distances
+    double * restrict D0, // Write distances
+    int * restrict S, int * restrict T, // Temporary pre-allocated storage
+    const int L, // Number of elements in this dimension
+    const int stride, 
+    const double d) // voxel size in this dimension
 {
   // 3: Forward
   int q = 0;
@@ -192,7 +193,7 @@ if(0){
     printf(" #, minPos, firstPixel, minValue\n"); 
     for(int tt = 0; tt<=q; tt++)
     {
-      printf(" %d, %6d, %6.0f, %6.2f\n", tt, S[tt], T[tt], D[stride*S[tt]]);
+      printf(" %d, %6d, %d, %6.2f\n", tt, S[tt], T[tt], D[stride*S[tt]]);
     }
 }
   }
@@ -225,7 +226,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   for(size_t kk = 0; kk<N*P; kk++) // For each column
   {
     size_t offset = kk*M;
-    pass12(B+offset, D+offset, M, dx, nL*2);
+    pass12(B+offset, D+offset, M, dx);
   }
 
   if(verbose>1)
@@ -234,8 +235,8 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     matrix_show(D, M, N, P);
   }
 
-  int * S = malloc(nL*nL*sizeof(double));
-  double * T = malloc(nL*nL*sizeof(double));
+  int * S = malloc(nL*nL*sizeof(int));
+  int * T = malloc(nL*nL*sizeof(int));
 
   //maintain only one line, not all of this
   double * D0 = malloc(M*N*P*sizeof(double));
@@ -254,7 +255,6 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     for(int ll = 0; ll<M; ll++) // row
     {
       size_t offset = kk*M*N + ll;
-      // TODO: does the threads get separate copies of S and T?
       pass34(D+offset, D0+offset, S+nL*kk, T+nL*kk, length, stride, dy);
     }
   }
@@ -265,15 +265,15 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     matrix_show(D, M, N, P);
   }
 
-
   // Third dimension
-  memcpy(D0, D, M*N*P*sizeof(double)); // TODO: Threaded
+  memcpy(D0, D, M*N*P*sizeof(double));  
 
   if(P>1)
   {
     length = P;
     stride = M*N;
-//#pragma omp parallel for
+
+    //#pragma omp parallel for
     for(int kk = 0; kk<M; kk++)
     {
       for(int ll = 0; ll<N; ll++)
@@ -292,15 +292,9 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     matrix_show(D, M, N, P);
   }
 
-  if(0)
-  for(size_t kk = 0; kk<M*N*P; kk++)
-    if(D[kk]>=2*nL)
-      D[kk] = INFINITY;
-
   free(D0);
   free(T);
   free(S);
-
 }
 
 
@@ -335,6 +329,7 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   // matrix_show(D, M, N, P);
   // printf("Edt^2 -- brute force reference:\n");
   clock_gettime(CLOCK_MONOTONIC, &start1);
+  if(M*N*P<1000000)
   edt_brute_force(B, D_bf, 
       M, N, P, 
       dx, dy, dz);
