@@ -8,10 +8,30 @@
 #include <math.h>
 #include <assert.h>
 #include <time.h>
+#include <pthread.h>
 
 #ifndef verbose
 #define verbose 0
 #endif
+
+typedef struct{
+  double * B;
+  double * D;
+  double * D0;
+  int * S;
+  int * T;
+
+  int thrId;
+  int nThreads;
+
+  size_t M;
+  size_t N;
+  size_t P;
+
+  double dx;
+  double dy;
+  double dz;
+} thrJob;
 
 size_t randi(size_t max)
   /* return a value in [0,max] */
@@ -138,6 +158,24 @@ void pass12(double * restrict B, double * restrict D, const size_t L, const doub
 }
 
 
+void * pass12_t(void * data)
+{
+  thrJob * job = (thrJob *) data;
+
+  size_t last = job->N*job->P; 
+  size_t from = job->thrId * last/job->nThreads;
+  size_t to = (job->thrId + 1)*last/job->nThreads-1;
+
+  printf("Thread: %d. From: %zu To: %zu\n", job->thrId, from, to);
+  fflush(stdout);
+  for(size_t kk = from; kk<=to; kk++) // For each column
+  {
+    size_t offset = kk*job->M;
+    pass12(job->B+offset, job->D+offset, job->M, job->dx);
+  }
+  return NULL;
+}
+
 void pass34(double * restrict D, // Read distances
     double * restrict D0, // Write distances
     int * restrict S, int * restrict T, // Temporary pre-allocated storage
@@ -214,6 +252,29 @@ void pass34(double * restrict D, // Read distances
   }
 }
 
+void * pass34x_t(void * data)
+{  
+  thrJob * job = (thrJob *) data;
+
+  // Second dimension
+  int length = job->N;
+  int stride = job->M;
+  double dy = job->dy;
+  
+ // clock_gettime(CLOCK_MONOTONIC, &tic);
+
+  for(int kk = job->thrId; kk<job->P; kk=kk+job->nThreads) // slice
+  {
+    for(int ll = 0; ll< job->M; ll++) // row
+    {
+      size_t offset = kk*job->M*job->N + ll;
+      pass34(job->D+offset, job->D0, job->S, job->T, length, stride, dy);
+    }
+  }
+  return NULL;
+}
+
+
 
 void edt(double * restrict B, double * restrict D, const size_t M, const size_t N, const size_t P, 
     const double dx, const double dy, const double dz)
@@ -230,29 +291,38 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
    * -------------------------------
    */
 
-  int * S = malloc(nL*sizeof(int));
-  int * T = malloc(nL*sizeof(int));
-  double * D0 = malloc(nL*sizeof(double));
+  int nThreads = 4;
 
+  pthread_t threads[nThreads];
+  thrJob jobs[nThreads];
+
+  for(int kk = 0; kk<nThreads; kk++)
+  {
+    jobs[kk].B = B;
+    jobs[kk].D = D;
+    jobs[kk].S = malloc(nL*sizeof(int));
+    jobs[kk].T = malloc(nL*sizeof(int));
+    jobs[kk].D0 = malloc(nL*sizeof(double));
+    jobs[kk].thrId = kk;
+    jobs[kk].nThreads = nThreads;
+    jobs[kk].M = M;
+    jobs[kk].N = N;
+    jobs[kk].P = P;
+    jobs[kk].dx = dx;
+    jobs[kk].dy = dy;
+    jobs[kk].dz = dz;
+  }
 
   // 
   // First dimension, pass 1 and 2
   //
-  struct timespec tic, toc;
-  clock_gettime(CLOCK_MONOTONIC, &tic);
 
-  for(size_t kk = 0; kk<N*P; kk++) // For each column
-  {
-    size_t offset = kk*M;
-    pass12(B+offset, D+offset, M, dx);
-  }
+  for(int kk = 0; kk<nThreads; kk++) // Run
+    pthread_create(&threads[kk], NULL, pass12_t, &jobs[kk]);
 
-//  clock_gettime(CLOCK_MONOTONIC, &toc);
- // double tot;
- // tot = (toc.tv_sec - tic.tv_sec);
- // tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
- // printf("Took %f s\n", tot);
-
+  for(int kk = 0; kk<nThreads; kk++) // Synchronize
+      pthread_join(threads[kk], NULL);
+   
   if(verbose>1)
   {
     printf("D:\n");
@@ -262,27 +332,12 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
   // 
   // Pass 2 and 3, for dimension 2, 3, ...
   //
+  for(int kk = 0; kk<nThreads; kk++) // Run
+    pthread_create(&threads[kk], NULL, pass34x_t, &jobs[kk]);
 
-  // Second dimension
-  int length = N;
-  int stride = M;
-  
- // clock_gettime(CLOCK_MONOTONIC, &tic);
+  for(int kk = 0; kk<nThreads; kk++) // Synchronize
+      pthread_join(threads[kk], NULL);
 
-  for(int kk = 0; kk<P; kk++) // slice
-  {
-    for(int ll = 0; ll<M; ll++) // row
-    {
-      size_t offset = kk*M*N + ll;
-      pass34(D+offset, D0, S, T, length, stride, dy);
-    }
-  }
-
- // clock_gettime(CLOCK_MONOTONIC, &toc);
- // tot = (toc.tv_sec - tic.tv_sec);
- // tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
- // printf("y Took %f s\n", tot);
- 
 
   if(verbose>1)
   {
@@ -295,14 +350,14 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
 
   if(P>1)
   {
-    length = P;
-    stride = M*N;
+    size_t length = P;
+    size_t stride = M*N;
     for(int kk = 0; kk<M; kk++)
     {
       for(int ll = 0; ll<N; ll++)
       {
         size_t offset = kk + ll*M;
-        pass34(D+offset, D0, S, T, length, stride, dz);
+        pass34(D+offset, jobs[0].D0, jobs[0].S, jobs[0].T, length, stride, dz);
       }
     }
   }
@@ -319,9 +374,12 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
     matrix_show(D, M, N, P);
   }
 
-  free(D0);
-  free(T);
-  free(S);
+  for(int kk = 0; kk<nThreads; kk++)
+  {
+    free(jobs[kk].S);
+    free(jobs[kk].T);
+    free(jobs[kk].D0);
+  }
 
   return;
 }
