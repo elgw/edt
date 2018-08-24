@@ -1,33 +1,40 @@
 # edt
 
-Euclidean distance transform.
+Euclidean distance transform for 2D and 3D images together with a
+MATLAB interface (mex). This is faster than `bwdist` for 3D images and
+can also handle anisotropic voxels. Matlab's bwdist implements [3].
 
-Using the algorithm descirbed by Meijster et al. Mishchenko claims that their Matlab code for extending `eudist` in MATLAB from 2D to 3D is even faster than this. Is that possible?
+## Implementation
+This is an implementation of the algorithm presented by Meijster et al. [1], with the following major differences:
+ * 3D, not 2D.
+ * Not only isotropic but also anisotropic voxels are handled.
+ * Only the Euclidean distance transform, not the other alternatives
+   that are discussed in the paper.
+ * `lpthread` is used for parallelisation and hence the code should
+   compile on both Linux and Mac.
+ * Each thread has a private copy of three line buffers of size
+   `max(M,N,P)` but very little more overhead.
 
- * `bwdist` in MATLAB uses all physical cores. On Intel 6700k, 4 threads are used. 1000 problems of size 1024x1024 took 12.4 s for the c code, 3.6 s for MATLAB, i.e., about the same time consumption in terms for TIMExTHREADS.
+## Notes
+ * Mishchenko claims that their Matlab code for extending `eudist` in MATLAB from 2D to 3D is even faster than this. It is possible that it was when they wrote the paper but it clearly isn't today.
 
 ## Timings
 
-For a `1042x1024x60` image, using dx=dy != dz for `df_eudist` and `bwdistsc`
+For a `1042x1024x60` image with isotropic pixels:
 ```
-bwdist*: 0.766235
-df_eudist: 1.069094
-bwdistsc 5.282077
+bwdist: 2.178184
+df_eudist: 0.897543
+bwdistsc 8.824819
 ```
-* isotropic voxels with `bwdist`.
 
 ![2D timings](timings_2D.png)
 ![3D timings](timings_3D.png)
 
- * 3D timings suggests that there are some memory issues to be sorted out.
- * Note that `df_eudist` does not have the special case where the voxel size is `1 x 1 x 1`.
-
 ## TODO
- * Write tests for corner cases and for invalid input, then handle those cases.
- * Parallelize with `lpthread` in order to reduce the buffer sizes or look into how to do it with [openmp](https://computing.llnl.gov/tutorials/openMP/#Clauses), *private*, etc, ...
- * Split pass 1 and 2 in order to avoid cache misses (i.e., avoid turning direction too often).
- * Possibly also split pass 3 and 4.
+ * Write tests for corner cases and for invalid input, then handle
+   those cases. For example, crashes when more threads than pixels for a dimension.
 
 ## References:
- * Mishchenko, 2012.
- * Meijster et al., 2000.
+ 1 Mishchenko, 2012. Code on [matlab file exchange](https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio).
+ 2 Meijster et al., 2000.
+ 3 Maurer, Calvin, Rensheng Qi, and Vijay Raghavan, "A Linear Time Algorithm for Computing Exact Euclidean Distance Transforms of Binary Images in Arbitrary Dimensions," IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 25, No. 2, February 2003, pp. 265-270.
