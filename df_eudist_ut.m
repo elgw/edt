@@ -2,14 +2,14 @@ function main()
 
 compile()
 
-test_correct_2D()
+%test_correct_2D()
 
-test_speed_image()
+%test_speed_image()
 
-test_speed_2D()
-dprintpdf('timings_2D', 'w', 20, 'h', 10)
+%test_speed_2D()
+%dprintpdf('timings_2D', 'w', 20, 'h', 10)
 test_speed_3D()
-dprintpdf('timings_3D', 'w', 20, 'h', 10)
+%dprintpdf('timings_3D', 'w', 20, 'h', 10)
 end
 
 function test_correct_2D()
@@ -33,7 +33,7 @@ end
 
 function compile()
 
-mex CFLAGS='$CFLAGS -std=c99 -march=native -lpthread -fopenmp -flto' LDFLAGS="$LDFLAGS -fopenmp -flto" COPTIMFLAGS='-O3 -DNDEBUG' df_eudist.c
+mex CFLAGS='$CFLAGS -std=c99 -march=native -lpthread -flto' LDFLAGS="$LDFLAGS -flto" COPTIMFLAGS='-O3 -DNDEBUG' df_eudist.c
 end
 
 function test_speed_image()
@@ -70,7 +70,7 @@ t_matlab = zeros(numel(N),1);
 t_df = zeros(numel(N),1);
 
 for nn = 1:numel(N)
-    progressbar(nn, numel(N));
+   % progressbar(nn, numel(N));
     B = zeros(N(nn),N(nn));
     for kk = 1:10
         B(randi(size(B,1)), randi(size(B,2))) = 1;
@@ -119,7 +119,7 @@ t_matlab = zeros(numel(N),1);
 t_df = zeros(numel(N),1);
 
 for nn = 1:numel(N)
-    progressbar(nn, numel(N));
+   % progressbar(nn, numel(N));
     B = zeros(N(nn),N(nn), N(nn));
     for kk = 1:10
         B(randi(size(B,1)), randi(size(B,2)), randi(size(B,2))) = 1;

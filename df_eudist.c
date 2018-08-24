@@ -1,5 +1,4 @@
 #include "mex.h"
-#include "omp.h"
 #include "eudist.c"
 
 /*
