@@ -1,5 +1,5 @@
 eudist:
-	gcc -Wall -O3 -std=c11 -march=native eudist.c -lm
+	gcc -Wall -O3 -std=c11 -march=native eudist.c -lm -flto  -fopenmp
 
 test:
 	gcc -Wall -std=c99 -g eudist.c -lm -o eudist_test
