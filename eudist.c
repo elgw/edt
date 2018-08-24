@@ -16,28 +16,29 @@
 #endif
 
 size_t randi(size_t max)
-{ // return a value in [0,max]
-
+  /* return a value in [0,max] */
+{ 
   size_t val = (size_t) ( (double) rand()/ (double) RAND_MAX * max );
-
   return val;
 }
 
 double randf(double min, double max)
+  /* Returns a random value in [min,max] */
 {
   return min + (double) rand() / (double) RAND_MAX * (max-min);
 }
 
 
-void edt_brute_force(double * B, double * D, size_t M, size_t N, size_t P, double dx, double dy, double dz)
-{
-
-  /* Brute force O(n^2) implementation 
+void edt_brute_force(double * B, double * D, // binary mask and distance
+    size_t M, size_t N, size_t P, // domain size
+    double dx, double dy, double dz) // voxel size
+  /* Brute force O(n^2) implementation of the euclidean distance
+   * transform
    *
    * This is used for testing correctness
    *
    * */
-
+{
   for(int mm = 0; mm<M; mm++)
     for(int nn = 0; nn<N; nn++)
       for(int pp = 0; pp<P; pp++)
@@ -67,7 +68,7 @@ void edt_brute_force(double * B, double * D, size_t M, size_t N, size_t P, doubl
           D[elm] = sqrt(d_min);
         }
       }
-return;
+  return;
 }
 
 // round towards zero
@@ -87,6 +88,7 @@ size_t max_size_t(size_t a, size_t b)
 }
 
 void matrix_show(double * M, size_t m, size_t n, size_t p)
+  /* Utility to print out small matrices */
 {
   if(m>20 || n>20 || p>20)
   {
@@ -107,12 +109,13 @@ void matrix_show(double * M, size_t m, size_t n, size_t p)
       printf("\n");
     }
   }
+  return;
 }
 
 
 void pass12(double * restrict B, double * restrict D, const size_t L, const double dx)
+/* Pass 1 and 2 for a line (stride 1, since only run along the first dimension) */
 {
-  /* Pass 1 and 2 for a line (stride 1, since only run along the first dimension) */
 
   // Pass 1
   double d = INFINITY;
@@ -134,7 +137,7 @@ void pass12(double * restrict B, double * restrict D, const size_t L, const doub
     if(d<D[ll])
       D[ll] = d;
   }
-return;
+  return;
 }
 
 void pass34(double * restrict D, // Read distances
@@ -156,29 +159,27 @@ void pass34(double * restrict D, // Read distances
     // f(t[q],s[q]) > f(t[q], u)
     // f(x,i) = (x-i)^2 + g(i)^2
     while(q >= 0 && ( (pow(d*(T[q]-S[q]),2) + pow(D[stride*S[q]],2)) >=
-                      (pow(d*(T[q]-u), 2) +  pow(D[stride*u],2)) ) )
+          (pow(d*(T[q]-u), 2) +  pow(D[stride*u],2)) ) )
       q--;
 
     if(q<0)
     {
-     q = 0;
+      q = 0;
       S[0] = u;
       T[0] = 0;
       if(verbose > 2)
         printf("reset, S[0] = %d\n", S[0]);
-     }
+    }
     else
     {
       // w = 1 + Sep(s[q],u)
       // Sep(i,u) = (u^2-i^2 +g(u)^2-g(i)^2) div (2(u-i))
       // where division is rounded off towards zero
-      //
-      // TODO: derive correctly for non-unit step length
       w = 1 + floor0( ( pow(d*u,2)  - pow(d*(double) S[q],2) 
-                     + pow(D[stride*u],2) - pow(D[stride*S[q]],2))/(d2*2*(u-(double) S[q])));
+            + pow(D[stride*u],2) - pow(D[stride*S[q]],2))/(d2*2*(u-(double) S[q])));
       // because of overflow, w is double. T does not have to be
       // double
-     // printf("q: %d, u: %d, S[q]: %d, D[stride*u]: %f D[stride*S[q]] %f, w: %f\n", q, u, S[q], D[stride*u], D[stride*S[q]], w);
+      // printf("q: %d, u: %d, S[q]: %d, D[stride*u]: %f D[stride*S[q]] %f, w: %f\n", q, u, S[q], D[stride*u], D[stride*S[q]], w);
       if(verbose > 0)
         printf("u/kk: %d, S[q] = %d, q: %d w: %f\n", u, S[q], q, w);
 
@@ -189,13 +190,13 @@ void pass34(double * restrict D, // Read distances
         T[q] = (int) w; // The first pixel of the segment
       }
     }
-if(0){
-    printf(" #, minPos, firstPixel, minValue\n"); 
-    for(int tt = 0; tt<=q; tt++)
-    {
-      printf(" %d, %6d, %d, %6.2f\n", tt, S[tt], T[tt], D[stride*S[tt]]);
+    if(0){
+      printf(" #, minPos, firstPixel, minValue\n"); 
+      for(int tt = 0; tt<=q; tt++)
+      {
+        printf(" %d, %6d, %d, %6.2f\n", tt, S[tt], T[tt], D[stride*S[tt]]);
+      }
     }
-}
   }
 
   // 4: Backward  
@@ -211,18 +212,22 @@ if(0){
 }
 
 
-void edt(double * B, double * D, size_t M, size_t N, size_t P, 
-    double dx, double dy, double dz)
+void edt(double * restrict B, double * restrict D, const size_t M, const size_t N, const size_t P, 
+    const double dx, const double dy, const double dz)
 {
-  // Euclidean distance transform from objects in M, into D
-  // Matrices are of size M x N
+  /* Euclidean distance transform 
+     B specifies a binary mask, 1 == object, 0 = background
+     Distances are stored in D
+     Matrices are of size M x N x P
+     */
 
   size_t nL = max_size_t(M,max_size_t(N, P));
 
   // 
   // First dimension, pass 1 and 2
   //
-//#pragma omp parallel for
+
+  #pragma omp parallel for
   for(size_t kk = 0; kk<N*P; kk++) // For each column
   {
     size_t offset = kk*M;
@@ -235,21 +240,26 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     matrix_show(D, M, N, P);
   }
 
+  // 
+  // Pass 2 and 3, for dimension 2, 3, ...
+  //
+
+  /* Set up buffers
+   * --------------
+   * only one line per thread is really needed,
+   * using lpthread that is much easier to achieve
+   */
+
   int * S = malloc(nL*nL*sizeof(int));
   int * T = malloc(nL*nL*sizeof(int));
-
-  //maintain only one line, not all of this
   double * D0 = malloc(M*N*P*sizeof(double));
   memcpy(D0, D, M*N*P*sizeof(double));
 
-  // 
-  // Second dimension, Pass 3 and 4
-  //
-
+  // Second dimension
   int length = N;
   int stride = M;
 
-//#pragma omp parallel for
+  #pragma omp parallel for
   for(int kk = 0; kk<P; kk++) // slice
   {
     for(int ll = 0; ll<M; ll++) // row
@@ -278,9 +288,7 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
     {
       for(int ll = 0; ll<N; ll++)
       {
-        //        int kk = 2; int ll = 0;
         size_t offset = kk + ll*M;
-        //printf("O: %zu S: %zu L: %zu\n", offset, stride, length);
         pass34(D+offset, D0+offset, S+nL*kk, T+nL*kk, length, stride, dz);
       }
     }
@@ -295,6 +303,8 @@ void edt(double * B, double * D, size_t M, size_t N, size_t P,
   free(D0);
   free(T);
   free(S);
+
+  return;
 }
 
 
@@ -321,8 +331,8 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   //B[3] = 1;
   if(verbose>0)
   {
-  printf("Binary mask:\n");
-  matrix_show(B, M, N, P);
+    printf("Binary mask:\n");
+    matrix_show(B, M, N, P);
   }
 
   //  printf("Edt^2:\n");
@@ -330,9 +340,9 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   // printf("Edt^2 -- brute force reference:\n");
   clock_gettime(CLOCK_MONOTONIC, &start1);
   if(M*N*P<1000000)
-  edt_brute_force(B, D_bf, 
-      M, N, P, 
-      dx, dy, dz);
+    edt_brute_force(B, D_bf, 
+        M, N, P, 
+        dx, dy, dz);
 
   clock_gettime(CLOCK_MONOTONIC, &end1);
 
@@ -351,11 +361,11 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
 
   if(verbose>0)
   {
-  printf("D_bf:\n");
-  matrix_show(D_bf, M, N, P);
+    printf("D_bf:\n");
+    matrix_show(D_bf, M, N, P);
   }
 
-  int wrong_result = 0;
+  int failed = 0;
   double max_error = 0;
 
   for(size_t kk = 0; kk<M*N*P; kk++)
@@ -363,44 +373,41 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
     double err = fabs(D[kk] - D_bf[kk]); 
     if(err > max_error)
       max_error = err;
-      
-    if(max_error > 10e-5)
-    {
-      wrong_result = 1;
-    }
+
+    if(err > 10e-5)
+      failed = 1;
   }
 
-    printf("Largest difference: %f\n", max_error);
-
-  if(wrong_result)
+  if(failed)
   {
     printf("Wrong result! ");
+    printf(" -- Largest difference: %f\n", max_error);
   } else
   {
     printf("Correct! ");
+    printf("Timing: Edt: %f s, bf: %f s\n", elapsed0, elapsed1);
   }
-
-  printf("Edt: %f s, bf: %f s\n", elapsed0, elapsed1);
 
   free(D_bf);
   free(D);
   free(B);
-  printf(".\n"); 
+
+  printf("\n"); 
   fflush(stdout);
-  return wrong_result;
+
+  return failed;
 }
 
 int main(int argc, char ** argv)
 {
 
   printf("Testing random sizes and voxel sizes\n");
-  printf("TODO: Present a summary when aborting\n");
   printf("Abort with Ctrl+C\n");
 
-//  test_size(8, 9, 1, 1.812511, 3.9250, 13.298);
-//  test_size(8, 9, 1, 1, 2, 1);
+  //  test_size(8, 9, 1, 1.812511, 3.9250, 13.298);
+  //  test_size(8, 9, 1, 1, 2, 1);
 
-//  return 0;
+  //  return 0;
 
   size_t nTest = 0;
   while(1)
@@ -413,10 +420,10 @@ int main(int argc, char ** argv)
     double dx = randf(0.1, 20); // wrong result when dx != 1
     double dy = randf(0.1, 20);
     double dz = randf(0.1, 20);
-    
+
     if(test_size(M,N,P, dx, dy, dz) > 0)
     {
-    printf(" --! Test %zu failed\n", nTest);
+      printf(" --! Test %zu failed\n", nTest);
       printf("Wrong result for M=%zu, N=%zu, P=%zu, dx=%f, dy=%f, dz=%f\n",
           M, N, P, dx, dy, dz);
       assert(0);
