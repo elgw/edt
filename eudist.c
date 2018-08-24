@@ -131,7 +131,7 @@ void matrix_show(double * M, size_t m, size_t n, size_t p)
 }
 
 void pass12(double * restrict B, double * restrict D, const size_t L, const double dx)
-/* Pass 1 and 2 for a line (stride 1, since only run along the first dimension) */
+  /* Pass 1 and 2 for a line (stride 1, since only run along the first dimension) */
 {
 
   // Pass 1
@@ -166,8 +166,8 @@ void * pass12_t(void * data)
   size_t from = job->thrId * last/job->nThreads;
   size_t to = (job->thrId + 1)*last/job->nThreads-1;
 
-  printf("Thread: %d. From: %zu To: %zu\n", job->thrId, from, to);
-  fflush(stdout);
+  //printf("Thread: %d. From: %zu To: %zu\n", job->thrId, from, to);
+  //fflush(stdout);
   for(size_t kk = from; kk<=to; kk++) // For each column
   {
     size_t offset = kk*job->M;
@@ -252,7 +252,7 @@ void pass34(double * restrict D, // Read distances
   }
 }
 
-void * pass34x_t(void * data)
+void * pass34y_t(void * data)
 {  
   thrJob * job = (thrJob *) data;
 
@@ -261,11 +261,9 @@ void * pass34x_t(void * data)
   int stride = job->M;
   double dy = job->dy;
   
- // clock_gettime(CLOCK_MONOTONIC, &tic);
-
-  for(int kk = job->thrId; kk<job->P; kk=kk+job->nThreads) // slice
-  {
-    for(int ll = 0; ll< job->M; ll++) // row
+  for(int kk = 0; kk< job->P; kk++) // slice
+    {
+  for(int ll = job->thrId; ll<job->M; ll=ll+job->nThreads) // row
     {
       size_t offset = kk*job->M*job->N + ll;
       pass34(job->D+offset, job->D0, job->S, job->T, length, stride, dy);
@@ -274,6 +272,25 @@ void * pass34x_t(void * data)
   return NULL;
 }
 
+void * pass34z_t(void * data)
+{  
+  thrJob * job = (thrJob *) data;
+
+  // Second dimension
+  int length = job->P;
+  int stride = job->M*job->N;
+  double dz = job->dz;
+
+  for(int kk = job->thrId; kk<job->M; kk=kk+job->nThreads)
+  {
+    for(int ll = 0; ll<job->N; ll++)
+    {
+      size_t offset = kk + ll*job->M;
+      pass34(job->D+offset, job->D0, job->S, job->T, length, stride, dz);
+    }
+  }
+  return NULL;
+}
 
 
 void edt(double * restrict B, double * restrict D, const size_t M, const size_t N, const size_t P, 
@@ -290,6 +307,11 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
   /* Set up threads and their buffers
    * -------------------------------
    */
+
+#ifdef timings
+  struct timespec tic, toc;
+  double tot;
+#endif
 
   int nThreads = 4;
 
@@ -313,16 +335,27 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
     jobs[kk].dz = dz;
   }
 
+
   // 
   // First dimension, pass 1 and 2
   //
+#ifdef timings
+    clock_gettime(CLOCK_MONOTONIC, &tic);
+#endif
 
   for(int kk = 0; kk<nThreads; kk++) // Run
     pthread_create(&threads[kk], NULL, pass12_t, &jobs[kk]);
 
   for(int kk = 0; kk<nThreads; kk++) // Synchronize
-      pthread_join(threads[kk], NULL);
-   
+    pthread_join(threads[kk], NULL);
+ 
+#ifdef timings 
+ clock_gettime(CLOCK_MONOTONIC, &toc);
+   tot = (toc.tv_sec - tic.tv_sec);
+   tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
+   printf("x Took %f s\n", tot);
+#endif
+
   if(verbose>1)
   {
     printf("D:\n");
@@ -332,13 +365,23 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
   // 
   // Pass 2 and 3, for dimension 2, 3, ...
   //
+
+  // Second dimension
+#ifdef timings
+  clock_gettime(CLOCK_MONOTONIC, &tic);
+#endif
+
   for(int kk = 0; kk<nThreads; kk++) // Run
-    pthread_create(&threads[kk], NULL, pass34x_t, &jobs[kk]);
+    pthread_create(&threads[kk], NULL, pass34y_t, &jobs[kk]);
 
   for(int kk = 0; kk<nThreads; kk++) // Synchronize
-      pthread_join(threads[kk], NULL);
-
-
+    pthread_join(threads[kk], NULL);
+#ifdef timings
+   clock_gettime(CLOCK_MONOTONIC, &toc);
+   tot = (toc.tv_sec - tic.tv_sec);
+   tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
+   printf("y Took %f s\n", tot);
+#endif
   if(verbose>1)
   {
     printf("D2:\n");
@@ -346,27 +389,23 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
   }
 
   // Third dimension
- // clock_gettime(CLOCK_MONOTONIC, &tic);
-
+#ifdef timings
+  clock_gettime(CLOCK_MONOTONIC, &tic);
+#endif
   if(P>1)
   {
-    size_t length = P;
-    size_t stride = M*N;
-    for(int kk = 0; kk<M; kk++)
-    {
-      for(int ll = 0; ll<N; ll++)
-      {
-        size_t offset = kk + ll*M;
-        pass34(D+offset, jobs[0].D0, jobs[0].S, jobs[0].T, length, stride, dz);
-      }
-    }
+    for(int kk = 0; kk<nThreads; kk++) // Run
+      pthread_create(&threads[kk], NULL, pass34z_t, &jobs[kk]);
+
+    for(int kk = 0; kk<nThreads; kk++) // Synchronize
+      pthread_join(threads[kk], NULL);
   }
-  
-//  clock_gettime(CLOCK_MONOTONIC, &toc);
-//  tot = (toc.tv_sec - tic.tv_sec);
-//  tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
- // printf("z Took %f s\n", tot);
- 
+#ifdef timings
+   clock_gettime(CLOCK_MONOTONIC, &toc);
+   tot = (toc.tv_sec - tic.tv_sec);
+   tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
+   printf("z Took %f s\n", tot);
+#endif
 
   if(verbose>1)
   {
@@ -461,15 +500,15 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
 
   if(bf_run)
   {
-  if(failed)
-  {
-    printf("Wrong result! ");
-    printf(" -- Largest difference: %f\n", max_error);
-  } else
-  {
-    printf("Correct! ");
-    printf("Timing: Edt: %f s, bf: %f s\n", elapsed0, elapsed1);
-  }
+    if(failed)
+    {
+      printf("Wrong result! ");
+      printf(" -- Largest difference: %f\n", max_error);
+    } else
+    {
+      printf("Correct! ");
+      printf("Timing: Edt: %f s, bf: %f s\n", elapsed0, elapsed1);
+    }
   }
   else {
     printf("Not verified against brute force\n");
@@ -493,8 +532,20 @@ int main(int argc, char ** argv)
 
   if(argc > 1)
   {
-    test_size(1024, 1024, 60, 120, 120, 300);
+    if(atoi(argv[1]) == 1)
+    {
+      test_size(1024, 1025, 60, 120, 120, 300);
+      return 0;
+    }
+    if(atoi(argv[1]) == 2)
+    {
+      test_size(16162, 16162, 1, 120, 120, 300);
+      return 0;
+    }
+
+    test_size(11, 12, 23, 120, 120, 300);
     return 0;
+
   }
 
   printf("Testing random sizes and voxel sizes\n");

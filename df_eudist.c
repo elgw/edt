@@ -44,7 +44,7 @@ size_t d3 = 1;
   double * D = (double *) mxGetPr(plhs[0]);
 
   edt(V, D, 
-      dim[0], dim[1], dim[2],
+      (size_t) dim[0], (size_t) dim[1], (size_t) dim[2],
       dx, dy, dz);
 }
 
