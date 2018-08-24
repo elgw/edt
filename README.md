@@ -35,6 +35,6 @@ bwdistsc 8.824819
    those cases. For example, crashes when more threads than pixels for a dimension.
 
 ## References:
- 1 Mishchenko, 2012. Code on [matlab file exchange](https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio).
- 2 Meijster et al., 2000.
- 3 Maurer, Calvin, Rensheng Qi, and Vijay Raghavan, "A Linear Time Algorithm for Computing Exact Euclidean Distance Transforms of Binary Images in Arbitrary Dimensions," IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 25, No. 2, February 2003, pp. 265-270.
+ 1. Mishchenko, 2012. Code on [matlab file exchange](https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio).
+ 2. Meijster et al., 2000.
+ 3. Maurer, Calvin, Rensheng Qi, and Vijay Raghavan, "A Linear Time Algorithm for Computing Exact Euclidean Distance Transforms of Binary Images in Arbitrary Dimensions," IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 25, No. 2, February 2003, pp. 265-270.
