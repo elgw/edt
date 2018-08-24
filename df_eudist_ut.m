@@ -39,12 +39,13 @@ end
 function test_speed_image()
 
 B = zeros(1024, 1024, 60);
+fprintf('Timings for an isotropic %dx%dx%d image\n', size(B,1), size(B,2), size(B,3));
 for kk = 1:50
     B(randi(size(B,1)), randi(size(B,2)), randi(size(B,3))) = 1;
 end
 
 tic
-D = bwdistsc(B, [1, 1, 1.0002]);
+D = bwdistsc(B, [1, 1, 1]);
 t_bwdistsc = toc;
 
 tic
@@ -52,7 +53,7 @@ D = bwdist(B);
 t_matlab = toc;
 
 tic
-D = df_eudist(B, [1, 1, 1.0002]);
+D = df_eudist(B);
 t_eudist = toc;
 
 
