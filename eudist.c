@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <time.h>
 
-// #include <omp.h>
+#include <omp.h>
 
 #ifndef verbose
 #define verbose 0
@@ -283,7 +283,7 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
     length = P;
     stride = M*N;
 
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for(int kk = 0; kk<M; kk++)
     {
       for(int ll = 0; ll<N; ll++)
@@ -339,10 +339,14 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   // matrix_show(D, M, N, P);
   // printf("Edt^2 -- brute force reference:\n");
   clock_gettime(CLOCK_MONOTONIC, &start1);
+  int bf_run = 0;
   if(M*N*P<1000000)
+  {
+    bf_run = 1;
     edt_brute_force(B, D_bf, 
         M, N, P, 
         dx, dy, dz);
+  }
 
   clock_gettime(CLOCK_MONOTONIC, &end1);
 
@@ -378,6 +382,8 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
       failed = 1;
   }
 
+  if(bf_run)
+  {
   if(failed)
   {
     printf("Wrong result! ");
@@ -387,6 +393,12 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
     printf("Correct! ");
     printf("Timing: Edt: %f s, bf: %f s\n", elapsed0, elapsed1);
   }
+  }
+  else {
+    printf("Not verified against brute force\n");
+    printf("Timing: %f s\n", elapsed0);
+  }
+
 
   free(D_bf);
   free(D);
@@ -401,13 +413,15 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
 int main(int argc, char ** argv)
 {
 
+
+  if(argc > 1)
+  {
+    test_size(1024, 1024, 60, 120, 120, 300);
+    return 0;
+  }
+
   printf("Testing random sizes and voxel sizes\n");
   printf("Abort with Ctrl+C\n");
-
-  //  test_size(8, 9, 1, 1.812511, 3.9250, 13.298);
-  //  test_size(8, 9, 1, 1, 2, 1);
-
-  //  return 0;
 
   size_t nTest = 0;
   while(1)
