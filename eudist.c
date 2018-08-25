@@ -14,21 +14,23 @@
 #define verbose 0
 #endif
 
+/* The structure for the "private" given to each thread */
 typedef struct{
-  double * B;
-  double * D;
-  double * D0;
-  int * S;
+  double * B; // Binary mask
+  double * D; // Output
+  double * D0; // Line buffer of size max(M, N, P)
+
+  int * S; // Line buffers for pass 3 and 4
   int * T;
 
   int thrId;
   int nThreads;
 
-  size_t M;
+  size_t M; // Image dimensions
   size_t N;
   size_t P;
 
-  double dx;
+  double dx; // Voxel size
   double dy;
   double dz;
 } thrJob;
