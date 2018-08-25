@@ -4,6 +4,18 @@ Euclidean distance transform for 2D and 3D images together with a
 MATLAB interface (mex). This is faster than `bwdist` for 3D images and
 can also handle anisotropic voxels. Matlab's bwdist implements [3].
 
+## Implementations:
+
+Both MATLAB (`bwdist`) and Python3
+(`SciPy.ndimage.distance_transform_edt`) uses [3].
+
+```
+Environment, Multi-Core, Anisotropic, N-dimensional, Method
+Matlab,      Yes,        No,          Yes            [3]
+Python3,     No,         Yes,         Yes            [3]
+Eudist,      Yes,        Yes,         No             [2]
+```
+
 ## Implementation
 This is an implementation of the algorithm presented by Meijster et al. [1], with the following major differences:
  * 3D, not 2D.
