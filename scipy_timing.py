@@ -30,5 +30,5 @@ def test_size3D(M, N, P):
 
 
 test_size2D(1024, 1024);
-# test_size3D(1024, 1024, 60);
+test_size3D(1024, 1024, 60);
 
