@@ -13,20 +13,20 @@ This repo contains an implementation of the Euclidean distance transform for
 
 ## Implementations
 
-Implementations can be found in:
-
- * MATLAB (`bwdist`)
- * Python3 (`SciPy.ndimage.distance_transform_edt`) uses [3].
-
-Here is a summary of their properties:
+Here is a incomplete list of places where the Euclidean distance
+transform can be found:
 
 ```
-Environment, Implementatoin, Multi-Core, Anisotropic, Dimensions, Method
+Environment, Implementation, Multi-Core, Anisotropic, Dimensions, Method
 Matlab,      bwdist,         Yes,        No,          N           [3]
 Matlab,      bwdistsc,       Yes,        Yes,         3           [1]
-Python3,     ndimage,        No,         Yes,         N           [3]
-C,           eudist,         Yes,        Yes,         3           [2]
+Python3 (1), ndimage,        No,         Yes,         N           [3]
+C, (2)       eudist,         Yes,        Yes,         3           [2]
+ImageJ                       ?           ?            2            ?
 ```
+
+(1) `SciPy.ndimage.distance_transform_edt`
+(2) with wrappers for Matlab and Python
 
 ## Implementation notes for eudist
 This is an implementation of the algorithm presented by Meijster et al. [1], with the following major differences:
@@ -38,9 +38,8 @@ This is an implementation of the algorithm presented by Meijster et al. [1], wit
    compile on both Linux and Mac.
  * Each thread has a private copy of three line buffers of size
    `max(M,N,P)` but very little more overhead.
-
-## Notes
- * Mishchenko claims that their Matlab code for extending `eudist` in MATLAB from 2D to 3D is even faster than this. It is possible that it was when they wrote the paper but it clearly isn't today.
+ * In the description of pass 2 and 3 on page ?, line ?, '<' is replaced by
+   '<='.
 
 ## Timings
 
