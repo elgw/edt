@@ -11,6 +11,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#include "eudist.h"
+
 #ifndef verbose
 #define verbose 0
 #endif
