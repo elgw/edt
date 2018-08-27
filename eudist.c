@@ -10,11 +10,11 @@
 #include <time.h>
 #include <pthread.h>
 #include <unistd.h>
-
+#include <stdint.h>
 #include "eudist.h"
 
 #ifndef verbose
-#define verbose 2
+#define verbose 0
 #endif
 
 /* The structure for the "private" given to each thread */
@@ -80,7 +80,9 @@ void edt_brute_force(double * B, double * D, // binary mask and distance
               {
                 if(B[kk+ M*ll+M*N*qq] == 1)
                 {
-                  double d = pow(dx*(kk-mm),2)+pow(dy*(ll-nn),2)+pow(dz*(qq-pp),2);
+                  double d = pow(dx*((int64_t) kk-(int64_t) mm),2)+
+                    pow(dy*((int64_t) ll-(int64_t) nn),2)+
+                    pow(dz*((int64_t) qq-(int64_t) pp),2);
                   if( d < d_min)
                     if( ! ((kk == mm ) && (ll == nn) && (qq == pp)))
                     {
@@ -227,7 +229,7 @@ void pass34(double * restrict D, // Read distances
       // because of overflow, w is double. T does not have to be
       // double
       // printf("q: %d, u: %d, S[q]: %d, D[stride*u]: %f D[stride*S[q]] %f, w: %f\n", q, u, S[q], D[stride*u], D[stride*S[q]], w);
-      if(verbose > 0)
+      if(verbose > 1)
         printf("u/kk: %d, S[q] = %d, q: %d w: %f\n", u, S[q], q, w);
 
       if(w<L)
@@ -590,6 +592,7 @@ while((ch = getopt(argc, argv, "Rn:M:N:P:rx:y:z:h\n")) != -1)
       break;
      case 'h':
       usage();
+      break;
      case 'R':
       srand((unsigned int) time(NULL));
       break;
