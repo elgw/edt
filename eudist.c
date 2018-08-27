@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <time.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #ifndef verbose
 #define verbose 0
@@ -164,13 +165,14 @@ void * pass12_t(void * data)
 {
   thrJob * job = (thrJob *) data;
 
-  size_t last = job->N*job->P; 
-  size_t from = job->thrId * last/job->nThreads;
-  size_t to = (job->thrId + 1)*last/job->nThreads-1;
+  int last = job->N*job->P; 
+  int from = job->thrId * last/job->nThreads;
+  int to = (job->thrId + 1)*last/job->nThreads-1;
 
-  //printf("Thread: %d. From: %zu To: %zu\n", job->thrId, from, to);
-  //fflush(stdout);
-  for(size_t kk = from; kk<=to; kk++) // For each column
+//  printf("Thread: %d. From: %d To: %d, last: %d\n", job->thrId, from, to, last);
+//  fflush(stdout);
+
+  for(int kk = from; kk<=to; kk++) // For each column
   {
     size_t offset = kk*job->M;
     pass12(job->B+offset, job->D+offset, job->M, job->dx);
@@ -296,7 +298,7 @@ void * pass34z_t(void * data)
 
 
 void edt(double * restrict B, double * restrict D, const size_t M, const size_t N, const size_t P, 
-    const double dx, const double dy, const double dz)
+    const double dx, const double dy, const double dz, int nThreads)
 {
   /* Euclidean distance transform 
      B specifies a binary mask, 1 == object, 0 = background
@@ -314,8 +316,6 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
   struct timespec tic, toc;
   double tot;
 #endif
-
-  int nThreads = 4;
 
   pthread_t threads[nThreads];
   thrJob jobs[nThreads];
@@ -426,7 +426,7 @@ void edt(double * restrict B, double * restrict D, const size_t M, const size_t 
 }
 
 
-int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
+int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz, int nThreads)
 {
   printf("Problem size: %zu x %zu x %zu\n", M, N, P);
   printf("Voxel size: %.2f x %.2f x %.2f\n", dx, dy, dz);
@@ -471,7 +471,7 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
   clock_gettime(CLOCK_MONOTONIC, &start0);
   edt(B, D, 
       M, N, P,
-      dx, dy, dz);
+      dx, dy, dz, nThreads);
 
   clock_gettime(CLOCK_MONOTONIC, &end0);
 
@@ -531,21 +531,35 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
 int main(int argc, char ** argv)
 {
 
+  int nThreads = 4;
+
+  if(argc>2)
+    nThreads = atoi(argv[2]);
+
+  printf("Using %d threads\n", nThreads);
 
   if(argc > 1)
   {
-    if(atoi(argv[1]) == 1)
+    if(atoi(argv[1]) == 3)
     {
-      test_size(1024, 1025, 60, 120, 120, 300);
+      test_size(1, 1, 1, 1, 1, 1, nThreads);
+      test_size(1, 1, 0, 1, 1, 1, nThreads);
+      test_size(1, 0, 0, 1, 1, 1, nThreads);
+      test_size(0, 1, 1, 1, 1, 1, nThreads);
+      return 0;
+    }
+     if(atoi(argv[1]) == 1)
+    {
+      test_size(1024, 1025, 60, 120, 120, 300, nThreads);
       return 0;
     }
     if(atoi(argv[1]) == 2)
     {
-      test_size(16162, 16162, 1, 120, 120, 300);
+      test_size(16162, 16162, 1, 120, 120, 300, nThreads);
       return 0;
     }
 
-    test_size(11, 12, 23, 120, 120, 300);
+    test_size(11, 12, 23, 120, 120, 300, nThreads);
     return 0;
 
   }
@@ -565,7 +579,7 @@ int main(int argc, char ** argv)
     double dy = randf(0.1, 20);
     double dz = randf(0.1, 20);
 
-    if(test_size(M,N,P, dx, dy, dz) > 0)
+    if(test_size(M,N,P, dx, dy, dz, nThreads) > 0)
     {
       printf(" --! Test %zu failed\n", nTest);
       printf("Wrong result for M=%zu, N=%zu, P=%zu, dx=%f, dy=%f, dz=%f\n",

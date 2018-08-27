@@ -9,6 +9,8 @@
 void mexFunction(int nlhs, mxArray *plhs[],int nrhs, const mxArray *prhs[]) 
 {
 
+  int nThreads = 4;
+
   if (nrhs<1 || nrhs>3) {
     mexErrMsgTxt("There should be 1 to three inputs.");
   }
@@ -45,7 +47,7 @@ size_t d3 = 1;
 
   edt(V, D, 
       (size_t) dim[0], (size_t) dim[1], (size_t) dim[2],
-      dx, dy, dz);
+      dx, dy, dz, nThreads);
 }
 
 
