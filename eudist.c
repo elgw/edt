@@ -60,9 +60,9 @@ void edt_brute_force(double * B, double * D, // binary mask and distance
    *
    * */
 {
-  for(int mm = 0; mm<M; mm++)
-    for(int nn = 0; nn<N; nn++)
-      for(int pp = 0; pp<P; pp++)
+  for(size_t mm = 0; mm<M; mm++)
+    for(size_t nn = 0; nn<N; nn++)
+      for(size_t pp = 0; pp<P; pp++)
       {
         double d_min = INFINITY; // Fallback, everything will be set to this if B is all zeros
         size_t elm  =mm+ M*nn +M*N*pp; // element to consider
@@ -72,9 +72,9 @@ void edt_brute_force(double * B, double * D, // binary mask and distance
         }
         else
         {
-          for(int kk = 0; kk<M; kk++)
-            for(int ll = 0; ll<N; ll++)
-              for(int qq = 0; qq<P; qq++)
+          for(size_t kk = 0; kk<M; kk++)
+            for(size_t ll = 0; ll<N; ll++)
+              for(size_t qq = 0; qq<P; qq++)
               {
                 if(B[kk+ M*ll+M*N*qq] == 1)
                 {
@@ -189,7 +189,7 @@ void pass34(double * restrict D, // Read distances
 {
 
   // Make a copy of D into D0
-  for(size_t kk = 0; kk<L; kk++)
+  for(int kk = 0; kk<L; kk++)
     D0[kk] = D[kk*stride]; 
 
   // 3: Forward
@@ -265,9 +265,9 @@ void * pass34y_t(void * data)
   int stride = job->M;
   double dy = job->dy;
   
-  for(int kk = 0; kk< job->P; kk++) // slice
+  for(size_t kk = 0; kk< job->P; kk++) // slice
     {
-  for(int ll = job->thrId; ll<job->M; ll=ll+job->nThreads) // row
+  for(size_t ll = job->thrId; ll<job->M; ll=ll+job->nThreads) // row
     {
       size_t offset = kk*job->M*job->N + ll;
       pass34(job->D+offset, job->D0, job->S, job->T, length, stride, dy);
@@ -285,9 +285,9 @@ void * pass34z_t(void * data)
   int stride = job->M*job->N;
   double dz = job->dz;
 
-  for(int kk = job->thrId; kk<job->M; kk=kk+job->nThreads)
+  for(size_t kk = job->thrId; kk<job->M; kk=kk+job->nThreads)
   {
-    for(int ll = 0; ll<job->N; ll++)
+    for(size_t ll = 0; ll<job->N; ll++)
     {
       size_t offset = kk + ll*job->M;
       pass34(job->D+offset, job->D0, job->S, job->T, length, stride, dz);
@@ -442,7 +442,7 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz, int
   /* Initialize binary mask */
   size_t nB = randi(M*N*P);
   printf("Setting %zu random elements to 1 in B\n", nB);
-  for(int bb = 0; bb<nB; bb++)
+  for(size_t bb = 0; bb<nB; bb++)
     B[randi(M*N*P-1)] = 1;
 
   //B[5*2+2] = 1;
