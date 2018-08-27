@@ -82,10 +82,11 @@ distance_transform_edt: 17.4 s
 ![3D timings](timings_3D.png)
 
 ## TODO
- * Write tests for corner cases and for invalid input, then handle
-   those cases. For example, crashes when more threads than pixels for a dimension.
+ * Write tests for corner cases and for invalid input. 
  * ND image implementation?
- * Finnish Python wrapper.
+ * Especially the Python wrapper needs some attention.
+ * The scheduling of the threads could for sure be optimized to handle
+   more exotic cases better.
 
 ## References:
  1. Mishchenko, 2012. Code on [matlab file exchange](https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio).
