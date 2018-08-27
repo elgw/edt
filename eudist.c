@@ -14,7 +14,7 @@
 #include "eudist.h"
 
 #ifndef verbose
-#define verbose 0
+#define verbose 2
 #endif
 
 /* The structure for the "private" given to each thread */
@@ -530,40 +530,79 @@ int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz, int
   return failed;
 }
 
+void usage()
+{
+  printf("Usage:\n");
+  printf("-n nThreads : Specify the number of threads to use\n");
+  printf("-M #        : Size along first dimension\n");
+  printf("-N #        : Size along second dimension\n");
+  printf("-P #        : Size along third dimension\n");
+  printf("-x #        : Pixel size in first dimension\n");
+  printf("-y #        : Pixel size in second dimension\n");
+  printf("-z #        : Pixel size in third dimension\n");
+  printf("-r          : Run tests with random image and pixel size\n");
+  printf("-R          : Use a random seed\n");
+  printf("-h          : Show this help message\n");
+  return;
+}
+
 int main(int argc, char ** argv)
 {
 
+  // Defaults:
   int nThreads = 4;
+  size_t M = 1024; size_t N = 1024; size_t P = 60;
+  double dx = 1; double dy = 1; double dz = 1;
+int test_one = 1;
 
-  if(argc>2)
-    nThreads = atoi(argv[2]);
+if(argc == 1)
+{
+  usage();
+  return 0;
+}
+char ch;
+while((ch = getopt(argc, argv, "Rn:M:N:P:rx:y:z:h\n")) != -1)
+{
+  switch(ch) {
+    case 'n':
+      nThreads = atoi(optarg);
+      break;
+    case 'M':
+      M = atoi(optarg);
+      break;
+    case 'N':
+      N = atoi(optarg);
+        break;
+    case 'P':
+      P = atoi(optarg);
+      break;
+    case 'r':
+      test_one = 0;
+      break;
+    case 'x':
+      dx = atof(optarg);
+      break;
+    case 'y':
+      dy = atof(optarg);
+      break;
+     case 'z':
+      dz = atof(optarg);
+      break;
+     case 'h':
+      usage();
+     case 'R':
+      srand((unsigned int) time(NULL));
+      break;
+
+   }
+}
 
   printf("Using %d threads\n", nThreads);
 
-  if(argc > 1)
+  if(test_one == 1)
   {
-    if(atoi(argv[1]) == 3)
-    {
-      test_size(1, 1, 1, 1, 1, 1, nThreads);
-      test_size(1, 1, 0, 1, 1, 1, nThreads);
-      test_size(1, 0, 0, 1, 1, 1, nThreads);
-      test_size(0, 1, 1, 1, 1, 1, nThreads);
-      return 0;
-    }
-     if(atoi(argv[1]) == 1)
-    {
-      test_size(1024, 1025, 60, 120, 120, 300, nThreads);
-      return 0;
-    }
-    if(atoi(argv[1]) == 2)
-    {
-      test_size(16162, 16162, 1, 120, 120, 300, nThreads);
-      return 0;
-    }
-
-    test_size(11, 12, 23, 120, 120, 300, nThreads);
-    return 0;
-
+test_size(M,N,P, dx, dy, dz, nThreads);
+return 0;
   }
 
   printf("Testing random sizes and voxel sizes\n");
@@ -574,12 +613,12 @@ int main(int argc, char ** argv)
   {
     nTest++;
     printf(" --> Test %zu\n", nTest);
-    size_t M = randi(15)+5;
-    size_t N = randi(15)+5;
-    size_t P = randi(45)+5;
-    double dx = randf(0.1, 20); // wrong result when dx != 1
-    double dy = randf(0.1, 20);
-    double dz = randf(0.1, 20);
+    M = randi(15)+5;
+    N = randi(15)+5;
+    P = randi(45)+5;
+    dx = randf(0.1, 20); // wrong result when dx != 1
+    dy = randf(0.1, 20);
+    dz = randf(0.1, 20);
 
     if(test_size(M,N,P, dx, dy, dz, nThreads) > 0)
     {
