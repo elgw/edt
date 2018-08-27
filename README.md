@@ -23,6 +23,7 @@ Matlab,      bwdistsc,       Yes,        Yes,         3           [1]
 Python3 (1), ndimage,        No,         Yes,         N           [3]
 C, (2)       eudist,         Yes,        Yes,         3           [2]
 ImageJ                       ?           ?            2            ?
+diplib                                                             ?
 ```
 
 (1) `SciPy.ndimage.distance_transform_edt`
@@ -40,6 +41,30 @@ This is an implementation of the algorithm presented by Meijster et al. [1], wit
    `max(M,N,P)` but very little more overhead.
  * In the description of pass 2 and 3 on page ?, line ?, '<' is replaced by
    '<='.
+
+## Usage:
+
+### Standalone/debugging and timing
+
+```
+make eudist
+./eudist -h
+```
+
+### Matlab
+Run
+```
+df_eudist_ut
+```
+to compile and do some timings and testing.
+
+### Python
+```
+make python
+python3 scipy_timings.py
+```
+That will compile the python wrapper and do some timings.
+
 
 ## Timings
 
