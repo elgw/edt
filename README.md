@@ -72,7 +72,7 @@ For a `1042x1024x60` image with isotropic pixels, on a Intel
 i5-4690K@3700 MHz, it takes:
 
 ```
-eudist:                  0.9 s
+eudist:                  1.7 s
 bwdist:                  2.2 s
 bwdistsc                 8.8 s
 distance_transform_edt: 17.4 s
