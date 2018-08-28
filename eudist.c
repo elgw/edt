@@ -96,15 +96,6 @@ void edt_brute_force(double * B, double * D, // binary mask and distance
   return;
 }
 
-// round towards zero
-double floor0( double value )
-{
-  if (value < 0.0)
-    return ceil( value );
-  else
-    return floor( value );
-}
-
 size_t max_size_t(size_t a, size_t b)
 {
   if(a>b)
@@ -224,7 +215,7 @@ void pass34(double * restrict D, // Read distances
       // w = 1 + Sep(s[q],u)
       // Sep(i,u) = (u^2-i^2 +g(u)^2-g(i)^2) div (2(u-i))
       // where division is rounded off towards zero
-      w = 1 + floor0( ( pow(d*u,2)  - pow(d*(double) S[q],2) 
+      w = 1 + trunc( ( pow(d*u,2)  - pow(d*(double) S[q],2) 
             + pow(D0[u],2) - pow(D0[S[q]],2))/(d2*2*(u-(double) S[q])));
       // because of overflow, w is double. T does not have to be
       // double

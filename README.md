@@ -23,7 +23,7 @@ Matlab,      bwdistsc,       Yes,        Yes,         3           [1]
 Python3 (1), ndimage,        No,         Yes,         N           [3]
 C, (2)       eudist,         Yes,        Yes,         3           [2]
 ImageJ                       ?           ?            2            ?
-diplib                                                             ?
+diplib                       No,         Yes,         3           [4]
 ```
 
 (1) `SciPy.ndimage.distance_transform_edt`
@@ -92,3 +92,4 @@ distance_transform_edt: 17.4 s
  1. Mishchenko, 2012. Code on [matlab file exchange](https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio).
  2. Meijster et al., 2000.
  3. Maurer, Calvin, Rensheng Qi, and Vijay Raghavan, "A Linear Time Algorithm for Computing Exact Euclidean Distance Transforms of Binary Images in Arbitrary Dimensions," IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 25, No. 2, February 2003, pp. 265-270.
+ 4. J.C. Mullikin, "The vector distance transform in two and three dimensions", CVGIP: Graphical Models and Image Processing 54(6):526-535, 1992.
