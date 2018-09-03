@@ -1,3 +1,6 @@
+// https://github.com/elgw/edt
+// 2018-09-03
+
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 199309L
 #endif
