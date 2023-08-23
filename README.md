@@ -6,7 +6,6 @@ The Euclidean distance transform, D, of a binary image, B, sets each
 voxel in D to the shortest distance to any non-zero voxel in B. If the
 voxel is considered to have the same length in each dimension it is
 called *isotropic*, otherwise *anisotropic*. The computational
-
 burden increases quadratically with the number of pixels in the obvious,
 brute-force implementation. State of the art methods are linear in the
 number of pixels and the number of dimensions, i.e., they are O(dN).
@@ -26,36 +25,12 @@ Differences to [:^1]
 * `lpthread` is used for parallelisation and hence the code should
   compile on both Linux and Mac.
 * In the description of pass 2 and 3 on page ?, line ?, '<' is replaced by
-
-## Usage:
-
-### Standalone/debugging and timing
-
-```
-make eudist
-./eudist -h
-```
-
-### Matlab
-Run
-```
-df_eudist_ut
-```
-to compile and do some timings and testing.
-
-### Python
-```
-make python
-python3 scipy_timings.py
-```
-That will compile the python wrapper and do some timings.
-
+'<='.
 
 
 ## Timings
 
 For a `1042x1024x60` image with isotropic pixels, on a Intel
-<<<<<<< HEAD
 i5-4690K@3700 MHz, it took:
 
 ```
