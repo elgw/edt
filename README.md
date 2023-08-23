@@ -16,7 +16,7 @@ Python.
 
 
 ## Implementation
-Differences to [:^1]
+Differences to [^1]
 
 * Also 3D, however not nD :(
 * Also handles anisotropic voxels.
