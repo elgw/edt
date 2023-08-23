@@ -1,10 +1,18 @@
-eudist:
-	gcc -Wall -Wextra -pedantic-errors -O3 -std=c11 -march=native eudist.c -lm -flto -lpthread -o eudist
+CC=cc -std=c99
+CFLAGS=-Wall -Wextra -O3 -pedantic
+LDFLAGS=-flto -pthread -lm
 
-test:
-	gcc -Wall -std=c99 -g eudist.c -lm -lpthread -o eudist_test
-	valgrind -v ./eudist_test
-#-fopenmp
+FILES=eudist.o src/eudist_cli.c
+eudist: $(FILES)
+	$(CC) $(CFLAGS) $(FILES) $(LDFLAGS) -o eudist
+
+
+eudist.o: src/eudist.c
+	$(CC) -c $(CFLAGS) src/eudist.c
+
+clean:
+	rm -f eudist
+	rm -f eudist.o
 
 python:
 	python3 eudist_setup.py build_ext --inplace

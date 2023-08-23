@@ -1,6 +1,8 @@
-function df_eudist_ut()
+function eudist_ut()
 
-compile()
+if exist('eudist') ~= 3
+eudist_build()
+end
 
 test_correct_2D()
 test_speed_image()
@@ -30,10 +32,6 @@ fprintf('%d 2D tests ok!\n', kk);
 
 end
 
-function compile()
-mex CFLAGS='$CFLAGS -std=c11 -march=native' LDFLAGS="$LDFLAGS -lpthread" COPTIMFLAGS='-O3 -flto' df_eudist.c
-%mex -g -lpthread df_eudist.c
-end
 
 function test_speed_image()
 

@@ -1,95 +1,57 @@
-# edt
+This repo contains an implementation of the Euclidean Distance
+Transform (EDT) based on the work by Meijster et. al [^1] with
+wrappers for MATLAB and Python.
 
 The Euclidean distance transform, D, of a binary image, B, sets each
 voxel in D to the shortest distance to any non-zero voxel in B. If the
 voxel is considered to have the same length in each dimension it is
 called *isotropic*, otherwise *anisotropic*. The computational
-burden increases quadratically with the number of pixels in the obvious, 
+burden increases quadratically with the number of pixels in the obvious,
 brute-force implementation. State of the art methods are linear in the
 number of pixels and the number of dimensions, i.e., they are O(dN).
 
-This repo contains an implementation of the Euclidean distance transform for 
- 2D and 3D images together with wrappers for MATLAB and Python.
+This repo contains an implementation of the Euclidean distance
+transform for 2D and 3D images together with wrappers for MATLAB and
+Python.
 
-## Implementations
 
-Here is a incomplete list of places where the Euclidean distance
-transform can be found:
+## Implementation
+Differences to [:^1]
 
-```
-Environment, Implementation, Multi-Core, Anisotropic, Dimensions, Method
-Matlab,      bwdist,         Yes,        No,          N           [3]
-Matlab,      bwdistsc,       Yes,        Yes,         3           [1]
-Python3 (1), ndimage,        No,         Yes,         N           [3]
-C, (2)       eudist,         Yes,        Yes,         3           [2]
-ImageJ                       ?           ?            2            ?
-diplib                       No,         Yes,         3           [4]
-```
-
-(1) `SciPy.ndimage.distance_transform_edt`
-(2) with wrappers for Matlab and Python
-
-## Implementation notes for eudist
-This is an implementation of the algorithm presented by Meijster et al. [1], with the following major differences:
- * 3D, not 2D.
- * Not only isotropic but also anisotropic voxels are handled.
- * Only the Euclidean distance transform, not the other alternatives
-   that are discussed in the paper.
- * `lpthread` is used for parallelisation and hence the code should
-   compile on both Linux and Mac.
- * Each thread has a private copy of three line buffers of size
-   `max(M,N,P)` but very little more overhead.
- * In the description of pass 2 and 3 on page ?, line ?, '<' is replaced by
-   '<='.
-
-## Usage:
-
-### Standalone/debugging and timing
-
-```
-make eudist
-./eudist -h
-```
-
-### Matlab
-Run
-```
-df_eudist_ut
-```
-to compile and do some timings and testing.
-
-### Python
-```
-make python
-python3 scipy_timings.py
-```
-That will compile the python wrapper and do some timings.
+* Also 3D, however not nD :(
+* Also handles anisotropic voxels.
+* Only the Euclidean distance transform, not the other alternatives
+  that are discussed in the paper.
+* `lpthread` is used for parallelisation and hence the code should
+  compile on both Linux and Mac.
+* In the description of pass 2 and 3 on page ?, line ?, '<' is replaced by
+'<='.
 
 
 ## Timings
 
 For a `1042x1024x60` image with isotropic pixels, on a Intel
-i5-4690K@3700 MHz, it takes:
+i5-4690K@3700 MHz, it took:
 
 ```
 eudist:                  1.7 s
-bwdist:                  2.2 s
-bwdistsc                 8.8 s
-distance_transform_edt: 17.4 s
+bwdist:                  2.2 s (MATLAB)
+distance_transform_edt: 17.4 s (SCIPY)
 ```
+timings were done in 2018... ish.
 
-![2D timings](timings_2D.png)
-![3D timings](timings_3D.png)
+![2D timings](doc/timings_2D.png)
+![3D timings](doc/timings_3D.png)
 
 ## TODO
- * Write tests for corner cases and for invalid input. 
- * ND image implementation?
- * Especially the Python wrapper needs some attention.
- * The scheduling of the threads could for sure be optimized to handle
-   more exotic cases better.
+* Write tests for corner cases and for invalid input.
+* ND image implementation?
+* Especially the Python wrapper needs some attention.
+* The scheduling of the threads could for sure be optimized to handle
+more exotic cases better.
+* Switch to OMP to save some lines.
+* Redo the documentation.
+* Make a proper wheel or similar for Python
 
 ## References:
- 1. Mishchenko, 2012. Code on [matlab file exchange](https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio).
- 2. Meijster et al., 2000.
- 3. Maurer, Calvin, Rensheng Qi, and Vijay Raghavan, "A Linear Time Algorithm for Computing Exact Euclidean Distance Transforms of Binary Images in Arbitrary Dimensions," IEEE Transactions on Pattern Analysis and Machine Intelligence, Vol. 25, No. 2, February 2003, pp. 265-270.
- 4. J.C. Mullikin, "The vector distance transform in two and three dimensions", CVGIP: Graphical Models and Image Processing 54(6):526-535, 1992.
+[^1]: Meijster, A., Roerdink, J.B.T.M., Hesselink, W.H. (2002). A General Algorithm for Computing Distance Transforms in Linear Time. In: Goutsias, J., Vincent, L., Bloomberg, D.S. (eds) Mathematical Morphology and its Applications to Image and Signal Processing. Computational Imaging and Vision, vol 18. Springer, Boston, MA. [doi:10.1007/0-306-47025-X_36](https://doi.org/10.1007/0-306-47025-X_36
