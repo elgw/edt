@@ -36,7 +36,7 @@ For a `1042x1024x60` image with isotropic pixels, on an AMD RYZEN
 ```
 eudist:                  0.7 s
 bwdist:                  1.0 s (MATLAB)
-bwdistsc:                5.0 s (MATLAB [^2])
+bwdistsc:                5.0 s ([^2])
 distance_transform_edt:  5.4 s (SCIPY)
 ```
 
@@ -66,3 +66,4 @@ more exotic cases better.
  discrete Euclidean distance transforms in three or more
  dimensions in Matlab. Signal, Image and Video Processing
  [DOI:10.1007/s11760-012-0419-9](http://doi.org/10.1007/s11760-012-0419-9)
+ Downloaded from [https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio]
