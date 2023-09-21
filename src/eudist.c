@@ -57,9 +57,6 @@ static void * pass12_t(void * data)
     int from = job->thrId * last/job->nThreads;
     int to = (job->thrId + 1)*last/job->nThreads-1;
 
-//  printf("Thread: %d. From: %d To: %d, last: %d\n", job->thrId, from, to, last);
-//  fflush(stdout);
-
     for(int kk = from; kk<=to; kk++) // For each column
     {
         size_t offset = kk*job->M;
@@ -102,7 +99,6 @@ static void pass34(double * restrict D, // Read distances
             q = 0;
             S[0] = u;
             T[0] = 0;
-
         }
         else
         {
@@ -110,9 +106,11 @@ static void pass34(double * restrict D, // Read distances
             // Sep(i,u) = (u^2-i^2 +g(u)^2-g(i)^2) div (2(u-i))
             // where division is rounded off towards zero
 
-            w = 1 + trunc( ( pow(d*u,2)  - pow(d*(double) S[q],2)
-                             + pow(D0[u],2) - pow(D0[S[q]],2))/(d2*2.0*(u-(double) S[q]))
-                );
+            w = 1 + trunc(
+                          ( pow(d*(double) u,2)  - pow(d*(double) S[q],2)
+                            + pow(D0[u],2) - pow(D0[S[q]],2) )
+                          /(d2*2.0*(double )(u - S[q]))
+                          );
 
             if(w<L)
             {
@@ -126,8 +124,6 @@ static void pass34(double * restrict D, // Read distances
     // 4: Backward
     for(int u = L-1; u > -1 ; u--)
     {
-        //dt[u,y]:=f(u,s[q])
-
         D[u*stride] = sqrt(pow(d*(u-S[q]), 2) + pow(D0[S[q]], 2));
         if(u <= (int) T[q])
         { q--; }
@@ -241,7 +237,6 @@ edt(const double * restrict B,
     printf("x Took %f s\n", tot);
 #endif
 
-
     /* Second dimension */
 #ifdef timings
     clock_gettime(CLOCK_MONOTONIC, &tic);
@@ -264,14 +259,15 @@ edt(const double * restrict B,
 #ifdef timings
     clock_gettime(CLOCK_MONOTONIC, &tic);
 #endif
-    if(P>1)
-    {
-        for(int kk = 0; kk<nThreads; kk++) {
-            pthread_create(&threads[kk], NULL, pass34z_t, &jobs[kk]); }
+    if(P<1)
+    { goto finalize; }
+    for(int kk = 0; kk<nThreads; kk++) {
+        pthread_create(&threads[kk], NULL, pass34z_t, &jobs[kk]); }
 
-        for(int kk = 0; kk<nThreads; kk++) {
-            pthread_join(threads[kk], NULL); }
-    }
+    for(int kk = 0; kk<nThreads; kk++) {
+        pthread_join(threads[kk], NULL); }
+
+ finalize:
 #ifdef timings
     clock_gettime(CLOCK_MONOTONIC, &toc);
     tot = (toc.tv_sec - tic.tv_sec);
