@@ -34,12 +34,12 @@ For a `1042x1024x60` image with isotropic pixels, on an AMD RYZEN
 3700X
 
 
-| Method                 | Time [s] | Note            |
-| -------                | -------- | -----           |
-| eudist                 |  0.7     | This            |
-| bwdist                 |  1.0     | MATLAB [^4]     |
-| bwdistsc               |  5.0     | For MATLAB [^2] |
-| distance_transform_edt |  5.4     | SciPy [^3]      |
+| Method                 | Time [s] | Note              |
+| ----                   | ----     | -----             |
+| eudist                 |  0.7     | This [^1]         |
+| bwdist                 |  1.0     | MATLAB [^4]       |
+| bwdistsc               |  5.0     | On MATLAB FX [^2] |
+| distance_transform_edt |  5.4     | SciPy [^3]        |
 
 
 ![2D timings](doc/timings_2D.png)
@@ -71,4 +71,4 @@ more exotic cases better.
 
 [^3]: [https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.distance_transform_edt.html]
 
-[^4] [https://se.mathworks.com/help/images/ref/bwdist.html]
+[^4]: [https://se.mathworks.com/help/images/ref/bwdist.html]
