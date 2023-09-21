@@ -6,14 +6,14 @@ Main points:
  - Competitive performance
  - Handles anisotropic pixel sizes at no extra cost.
 
-The Euclidean distance transform, $'D'$, of a binary image, $'B'$,
-sets each voxel in $'D'$ to the shortest distance to any non-zero
-voxel in $'B'$. If the voxel is considered to have the same length in
+The Euclidean distance transform, $`D`$, of a binary image, $`B`$,
+sets each voxel in $`D`$ to the shortest distance to any non-zero
+voxel in $`B`$. If the voxel is considered to have the same length in
 each dimension it is called *isotropic*, otherwise *anisotropic*. The
 computational burden increases quadratically with the number of pixels
 in the obvious, brute-force implementation. State of the art methods
 are linear in the number of pixels and the number of dimensions, i.e.,
-they are $'\mathcal{O}(dN)'$.
+they are $`\mathcal{O}(dN)`$.
 
 
 ## Implementation
@@ -22,14 +22,14 @@ Differences to [^1]
 * Extended to 3D (however not nD).
 * Handles anisotropic voxels. Basically this modification just
   required insertion of the pixel sizes at the proper places. The
-  $'\mbox{Sep}'$ function looks different and in some places equality tests
+  $`\mbox{Sep}`$ function looks different and in some places equality tests
   are replaced by greater/smaller or equal.
 * Only the Euclidean distance transform is implemented, not the other
   alternatives that are discussed in the paper.
 
 ## Timings
 
-For a $'1042\times1024\times60'$ image with isotropic pixels, on an
+For a $`1042\times1024\times60`$ image with isotropic pixels, on an
 AMD Ryzen 3700X:
 
 
