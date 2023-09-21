@@ -1,11 +1,10 @@
 CC=cc -std=c99
-CFLAGS=-Wall -Wextra -O3 -pedantic
-LDFLAGS=-flto -pthread -lm
+CFLAGS=-Wall -Wextra -O3 -pedantic -fopenmp
+LDFLAGS=-flto -lm -fopenmp
 
 FILES=eudist.o src/eudist_cli.c
 eudist: $(FILES)
 	$(CC) $(CFLAGS) $(FILES) $(LDFLAGS) -o eudist
-
 
 eudist.o: src/eudist.c
 	$(CC) -c $(CFLAGS) src/eudist.c

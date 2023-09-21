@@ -84,7 +84,7 @@ static void matrix_show(double * M, size_t m, size_t n, size_t p)
     return;
 }
 
-static int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz, int nThreads)
+static int test_size(size_t M, size_t N, size_t P, double dx, double dy, double dz)
 {
     printf("Problem size: %zu x %zu x %zu\n", M, N, P);
     printf("Voxel size: %.2f x %.2f x %.2f\n", dx, dy, dz);
@@ -129,7 +129,7 @@ static int test_size(size_t M, size_t N, size_t P, double dx, double dy, double 
     clock_gettime(CLOCK_MONOTONIC, &start0);
     edt(B, D,
         M, N, P,
-        dx, dy, dz, nThreads);
+        dx, dy, dz);
 
     clock_gettime(CLOCK_MONOTONIC, &end0);
 
@@ -190,7 +190,6 @@ static int test_size(size_t M, size_t N, size_t P, double dx, double dy, double 
 static void usage()
 {
     printf("Usage:\n");
-    printf("-n nThreads : Specify the number of threads to use\n");
     printf("-M #        : Size along first dimension\n");
     printf("-N #        : Size along second dimension\n");
     printf("-P #        : Size along third dimension\n");
@@ -208,7 +207,6 @@ int main(int argc, char ** argv)
 {
 
     // Defaults:
-    int nThreads = 0; // Auto
     size_t M = 1024; size_t N = 1024; size_t P = 60;
     double dx = 1; double dy = 1; double dz = 1;
     int test_one = 1;
@@ -219,12 +217,9 @@ int main(int argc, char ** argv)
         return 0;
     }
     char ch;
-    while((ch = getopt(argc, argv, "Rn:M:N:P:rx:y:z:h\n")) != -1)
+    while((ch = getopt(argc, argv, "RM:N:P:rx:y:z:h\n")) != -1)
     {
         switch(ch) {
-        case 'n':
-            nThreads = atoi(optarg);
-            break;
         case 'M':
             M = atoi(optarg);
             break;
@@ -256,16 +251,9 @@ int main(int argc, char ** argv)
         }
     }
 
-    if(nThreads < 1)
-    {
-        printf("Using automatic number of threads\n");
-    } else {
-        printf("Using %d threads\n", nThreads);
-    }
-
     if(test_one == 1)
     {
-        test_size(M,N,P, dx, dy, dz, nThreads);
+        test_size(M,N,P, dx, dy, dz);
         return 0;
     }
 
@@ -284,7 +272,7 @@ int main(int argc, char ** argv)
         dy = randf(0.1, 20);
         dz = randf(0.1, 20);
 
-        if(test_size(M,N,P, dx, dy, dz, nThreads) > 0)
+        if(test_size(M,N,P, dx, dy, dz) > 0)
         {
             printf(" --! Test %zu failed\n", nTest);
             printf("Wrong result for M=%zu, N=%zu, P=%zu, dx=%f, dy=%f, dz=%f\n",

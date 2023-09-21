@@ -61,9 +61,7 @@ static PyObject* eudist_func(PyObject* self, PyObject* args)
 
     edt(B, D,
         M, N, P,
-        Sz[0], Sz[1], Sz[1],
-        0);
-
+        Sz[0], Sz[1], Sz[1]);
 
     /*  construct the output */
     return pyD;

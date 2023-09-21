@@ -1,5 +1,5 @@
 function eudist_ut()
-close all
+%close all
 if exist('eudist') ~= 3
 eudist_build()
 end
@@ -10,9 +10,9 @@ test_correct_3D()
 test_speed_image()
 
 test_speed_2D()
-dprintpdf('timings_2D', 'w', 20, 'h', 10)
+dprintpdf('timings_2D', 'w', 20, 'h', 10, 'driver', {'-dpng', '-dpdf'})
 test_speed_3D()
-dprintpdf('timings_3D', 'w', 20, 'h', 10)
+dprintpdf('timings_3D', 'w', 20, 'h', 10, 'driver', {'-dpng', '-dpdf'})
 end
 
 function test_correct_2D()
@@ -54,10 +54,14 @@ for kk = 1:50
     B(randi(size(B,1)), randi(size(B,2)), randi(size(B,3))) = 1;
 end
 
-tic
-D1 = bwdistsc(B, [1, 1, 1]);
-t_bwdistsc = toc;
-
+if exist('bwdistsc')
+    tic
+    D1 = bwdistsc(B, [1, 1, 1]);
+    t_bwdistsc = toc;
+else
+    warning('bwdistsc not available')
+    t_bwdistsc = -1;
+end
 tic
 D2 = bwdist(B);
 t_matlab = toc;
@@ -73,7 +77,7 @@ end
 
 function test_speed_2D()
 
-N = linspace(100,10e7, 50);
+N = linspace(100,10e6, 40);
 N = round(sqrt(N));
 K = 5; % number of trials
 t_matlab = zeros(numel(N),1);
@@ -119,7 +123,7 @@ end
 
 function test_speed_3D()
 
-N = linspace(1000,10e7, 50);
+N = linspace(1000,10e4, 40);
 N = round(N.^(1/3));
 K = 5; % number of trials
 t_matlab = zeros(numel(N),1);

@@ -1,26 +1,5 @@
 #include "eudist.h"
 
-/* The structure for the "private" given to each thread */
-typedef struct{
-    const double * B; // Binary mask
-    double * D; // Output
-    double * D0; // Line buffer of size max(M, N, P)
-
-    int * S; // Line buffers for pass 3 and 4
-    int * T;
-
-    int thrId;
-    int nThreads;
-
-    size_t M; // Image dimensions
-    size_t N;
-    size_t P;
-
-    double dx; // Voxel size
-    double dy;
-    double dz;
-} thrJob;
-
 static void pass12(const double * restrict B, double * restrict D, const size_t L, const double dx)
 /* Pass 1 and 2 for a line (stride 1, since only run along the first dimension) */
 {
@@ -48,22 +27,6 @@ static void pass12(const double * restrict B, double * restrict D, const size_t 
     return;
 }
 
-
-static void * pass12_t(void * data)
-{
-    thrJob * job = (thrJob *) data;
-
-    int last = job->N*job->P;
-    int from = job->thrId * last/job->nThreads;
-    int to = (job->thrId + 1)*last/job->nThreads-1;
-
-    for(int kk = from; kk<=to; kk++) // For each column
-    {
-        size_t offset = kk*job->M;
-        pass12(job->B+offset, job->D+offset, job->M, job->dx);
-    }
-    return NULL;
-}
 
 static void pass34(double * restrict D, // Read distances
                    double * restrict D0, // Write distances
@@ -131,156 +94,59 @@ static void pass34(double * restrict D, // Read distances
     return;
 }
 
-static void * pass34y_t(void * data)
-{
-    thrJob * job = (thrJob *) data;
-
-    // Second dimension
-    int length = job->N;
-    int stride = job->M;
-    double dy = job->dy;
-
-    for(size_t kk = 0; kk< job->P; kk++) // slice
-    {
-        for(size_t ll = job->thrId; ll<job->M; ll=ll+job->nThreads) // row
-        {
-            size_t offset = kk*job->M*job->N + ll;
-            pass34(job->D+offset, job->D0, job->S, job->T, length, stride, dy);
-        }
-    }
-    return NULL;
-}
-
-static void * pass34z_t(void * data)
-{
-    thrJob * job = (thrJob *) data;
-
-    // Second dimension
-    int length = job->P;
-    int stride = job->M*job->N;
-    double dz = job->dz;
-
-    for(size_t kk = job->thrId; kk<job->M; kk=kk+job->nThreads)
-    {
-        for(size_t ll = 0; ll<job->N; ll++)
-        {
-            size_t offset = kk + ll*job->M;
-            pass34(job->D+offset, job->D0, job->S, job->T, length, stride, dz);
-        }
-    }
-    return NULL;
-}
-
 
 void
 edt(const double * restrict B,
     double * restrict D,
     const size_t M, const size_t N, const size_t P,
-    const double dx, const double dy, const double dz,
-    int nThreads)
+    const double dx, const double dy, const double dz)
 {
 
+    /* Size of buffers */
     size_t nL = M;
     N > nL ? nL = N : 0;
     P > nL ? nL = P : 0;
 
-    if(nThreads < 1)
+#pragma omp parallel
     {
-        nThreads = sysconf(_SC_NPROCESSORS_ONLN)/2;
-    }
+        int * S = calloc(nL, sizeof(int));
+        int * T = calloc(nL, sizeof(int));
+        double * D0 = calloc(nL, sizeof(double));
 
-#ifdef timings
-    struct timespec tic, toc;
-    double tot;
-#endif
-
-    /* Set up threads and their buffers */
-
-    pthread_t threads[nThreads];
-    thrJob jobs[nThreads];
-
-    for(int kk = 0; kk<nThreads; kk++)
-    {
-        jobs[kk].B = B;
-        jobs[kk].D = D;
-        jobs[kk].S = calloc(nL, sizeof(int));
-        jobs[kk].T = calloc(nL, sizeof(int));
-        jobs[kk].D0 = calloc(nL, sizeof(double));
-        jobs[kk].thrId = kk;
-        jobs[kk].nThreads = nThreads;
-        jobs[kk].M = M;
-        jobs[kk].N = N;
-        jobs[kk].P = P;
-        jobs[kk].dx = dx;
-        jobs[kk].dy = dy;
-        jobs[kk].dz = dz;
-    }
+#pragma omp for
+        for(size_t kk = 0; kk < N*P; kk++) // For each column
+        {
+            size_t offset = kk*M;
+            pass12(B+offset, D+offset, M, dx);
+        }
 
 
-    /* First dimension, pass 1 and 2 */
+        for(size_t kk = 0; kk < P; kk++) // slice
+        {
+#pragma omp for
+            for(size_t ll = 0; ll<M; ll++) // row
+            {
+                size_t offset = kk*M*N + ll;
+                pass34(D+offset, D0, S, T, N, M, dy);
+            }
+        }
 
-#ifdef timings
-    clock_gettime(CLOCK_MONOTONIC, &tic);
-#endif
+        if(P > 1)
+        {
+        for(size_t kk = 0; kk<M; kk++)
+        {
+#pragma omp for
+            for(size_t ll = 0; ll<N; ll++)
+            {
+                size_t offset = kk + ll*M;
+                pass34(D+offset, D0, S, T, P, M*N, dz);
+            }
+        }
+        }
 
-    for(int kk = 0; kk<nThreads; kk++) {
-        pthread_create(&threads[kk], NULL, pass12_t, &jobs[kk]); }
-
-    for(int kk = 0; kk<nThreads; kk++) {
-        pthread_join(threads[kk], NULL); }
-
-
-#ifdef timings
-    clock_gettime(CLOCK_MONOTONIC, &toc);
-    tot = (toc.tv_sec - tic.tv_sec);
-    tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
-    printf("x Took %f s\n", tot);
-#endif
-
-    /* Second dimension */
-#ifdef timings
-    clock_gettime(CLOCK_MONOTONIC, &tic);
-#endif
-
-    for(int kk = 0; kk<nThreads; kk++) {
-        pthread_create(&threads[kk], NULL, pass34y_t, &jobs[kk]); }
-
-    for(int kk = 0; kk<nThreads; kk++) {
-        pthread_join(threads[kk], NULL); }
-
-#ifdef timings
-    clock_gettime(CLOCK_MONOTONIC, &toc);
-    tot = (toc.tv_sec - tic.tv_sec);
-    tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
-    printf("y Took %f s\n", tot);
-#endif
-
-    /* Third dimension */
-#ifdef timings
-    clock_gettime(CLOCK_MONOTONIC, &tic);
-#endif
-    if(P<1)
-    { goto finalize; }
-    for(int kk = 0; kk<nThreads; kk++) {
-        pthread_create(&threads[kk], NULL, pass34z_t, &jobs[kk]); }
-
-    for(int kk = 0; kk<nThreads; kk++) {
-        pthread_join(threads[kk], NULL); }
-
- finalize:
-#ifdef timings
-    clock_gettime(CLOCK_MONOTONIC, &toc);
-    tot = (toc.tv_sec - tic.tv_sec);
-    tot += (toc.tv_nsec - tic.tv_nsec) / 1000000000.0;
-    printf("z Took %f s\n", tot);
-#endif
-
-    /* Finalize */
-    for(int kk = 0; kk<nThreads; kk++)
-    {
-        free(jobs[kk].S);
-        free(jobs[kk].T);
-        free(jobs[kk].D0);
+        free(T);
+        free(S);
+        free(D0);
     }
 
     return;

@@ -11,14 +11,14 @@
 #include <math.h>
 #include <assert.h>
 #include <time.h>
-#include <pthread.h>
+#include <omp.h>
 #include <unistd.h>
 #include <stdint.h>
 #include "eudist.h"
 
 #define EDT_VERSION_MAJOR "0"
 #define EDT_VERSION_MINOR "1"
-#define EDT_VERSION_PATCH "1"
+#define EDT_VERSION_PATCH "2"
 #define edt_version EDT_VERSION_MAJOR "."       \
     EDT_VERSION_MINOR "."                       \
     EDT_VERSION_PATCH
@@ -31,8 +31,6 @@
  *    B specifies a binary mask, 1 == object, 0 = background
  *    Matrices are of size M x N x P
  *    dx, dy, dz specifies the pixel size
- *    If nThreads < 1 the number of threads will be set
- *    as sysconf(_SC_NPROCESSORS_ONLN)/2
  *
  * Output:
  *    Distances are stored in D
@@ -41,7 +39,6 @@
 void edt(const double * restrict B,
          double * restrict D,
          const size_t M, const size_t N, const size_t P,
-         const double dx, const double dy, const double dz,
-         int nThreads);
+         const double dx, const double dy, const double dz);
 
 #endif

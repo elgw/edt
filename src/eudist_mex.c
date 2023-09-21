@@ -8,9 +8,6 @@
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-
-    int nThreads = 0; // auto
-
     if (nrhs<1 || nrhs>3) {
         mexErrMsgTxt("There should be one or two inputs. 1/ mask, 2/ pixel size (optional)");
     }
@@ -47,5 +44,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     edt(V, D,
         (size_t) dim[0], (size_t) dim[1], (size_t) dim[2],
-        dx, dy, dz, nThreads);
+        dx, dy, dz);
 }
