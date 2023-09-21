@@ -18,23 +18,30 @@
 
 #define EDT_VERSION_MAJOR "0"
 #define EDT_VERSION_MINOR "1"
-#define EDT_VERSION_PATCH "0"
-#define edt_version EDT_VERSION_MAJOR "."  \
-    EDT_VERSION_MINOR "."                        \
+#define EDT_VERSION_PATCH "1"
+#define edt_version EDT_VERSION_MAJOR "."       \
+    EDT_VERSION_MINOR "."                       \
     EDT_VERSION_PATCH
 
 
-/*  Euclidean distance transform
-    B specifies a binary mask, 1 == object, 0 = background
-    Distances are stored in D
-    Matrices are of size M x N x P
-    nThreads has to be at least 1.
+/* Euclidean distance transform implemented from
+ * https://doi.org/10.1007/0-306-47025-X_36
+ *
+ * Input:
+ *    B specifies a binary mask, 1 == object, 0 = background
+ *    Matrices are of size M x N x P
+ *    dx, dy, dz specifies the pixel size
+ *    If nThreads < 1 the number of threads will be set
+ *    as sysconf(_SC_NPROCESSORS_ONLN)/2
+ *
+ * Output:
+ *    Distances are stored in D
 */
 
-void edt(double * restrict B,
-    double * restrict D,
-    const size_t M, const size_t N, const size_t P,
-    const double dx, const double dy, const double dz,
-    int nThreads);
+void edt(const double * restrict B,
+         double * restrict D,
+         const size_t M, const size_t N, const size_t P,
+         const double dx, const double dy, const double dz,
+         int nThreads);
 
 #endif

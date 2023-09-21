@@ -1,10 +1,12 @@
 function eudist_ut()
-
+close all
 if exist('eudist') ~= 3
 eudist_build()
 end
 
 test_correct_2D()
+test_correct_3D()
+
 test_speed_image()
 
 test_speed_2D()
@@ -18,7 +20,7 @@ function test_correct_2D()
 for kk = 1:1000
     M = zeros(randi(100)+10, randi(100)+10);
     M(randi(size(M,1)), randi(size(M,2))) = 1;
-    D1 = df_eudist(M);
+    D1 = eudist(M);
     D2 = bwdist(M);
     
     err = max(abs(D1(:)-D2(:)));
@@ -32,6 +34,17 @@ fprintf('%d 2D tests ok!\n', kk);
 
 end
 
+function test_correct_3D()
+M = zeros(9, 10, 11);
+M(4, 5, 6) = 1;
+Diso = eudist(M, [1, 1, 1]);
+D2 = eudist(M, pi*[1,1,1]);
+
+assert(max(abs(pi*Diso(:)-D2(:))) < 1e-9);
+
+%D3 = eudist(M, [0.073, 0.073, 0.130]);
+%keyboard
+end
 
 function test_speed_image()
 
@@ -50,11 +63,11 @@ D2 = bwdist(B);
 t_matlab = toc;
 
 tic
-D3 = df_eudist(B);
+D3 = eudist(B);
 t_eudist = toc;
 
 
-fprintf('bwdist: %f, df_eudist: %f, bwdistsc %f\n', t_matlab, t_eudist, t_bwdistsc);
+fprintf('bwdist: %f, eudist: %f, bwdistsc %f\n', t_matlab, t_eudist, t_bwdistsc);
 
 end
 
@@ -82,7 +95,7 @@ for nn = 1:numel(N)
     
     tic
     for kk = 1:K
-        D = df_eudist(B);
+        D = eudist(B);
     end
     t_df(nn) = toc/K;
 end
@@ -127,7 +140,7 @@ for nn = 1:numel(N)
     
     tic
     for kk = 1:K
-        D = df_eudist(B);
+        D = eudist(B);
     end
     
     t_df(nn) = toc/K;

@@ -30,15 +30,16 @@ Differences to [^1]
 
 ## Timings
 
-For a `1042x1024x60` image with isotropic pixels, on a Intel
-i5-4690K@3700 MHz, it took:
+For a `1042x1024x60` image with isotropic pixels, on an AMD RYZEN
+3700X
 
 ```
-eudist:                  1.7 s
-bwdist:                  2.2 s (MATLAB)
-distance_transform_edt: 17.4 s (SCIPY)
+eudist:                  0.7 s
+bwdist:                  1.0 s (MATLAB)
+bwdistsc:                5.0 s (MATLAB [^2])
+distance_transform_edt:  5.4 s (SCIPY)
 ```
-timings were done in 2018... ish.
+
 
 ![2D timings](doc/timings_2D.png)
 ![3D timings](doc/timings_3D.png)
@@ -54,4 +55,14 @@ more exotic cases better.
 * Make a proper wheel or similar for Python
 
 ## References:
-[^1]: Meijster, A., Roerdink, J.B.T.M., Hesselink, W.H. (2002). A General Algorithm for Computing Distance Transforms in Linear Time. In: Goutsias, J., Vincent, L., Bloomberg, D.S. (eds) Mathematical Morphology and its Applications to Image and Signal Processing. Computational Imaging and Vision, vol 18. Springer, Boston, MA. [doi:10.1007/0-306-47025-X_36](https://doi.org/10.1007/0-306-47025-X_36
+[^1]: Meijster, A., Roerdink, J.B.T.M., Hesselink, W.H. (2002). A
+    General Algorithm for Computing Distance Transforms in Linear
+    Time. In: Goutsias, J., Vincent, L., Bloomberg, D.S. (eds)
+    Mathematical Morphology and its Applications to Image and Signal
+    Processing. Computational Imaging and Vision, vol 18. Springer,
+    Boston,
+    MA. [DOI:10.1007/0-306-47025-X_36](https://doi.org/10.1007/0-306-47025-X_36)
+[^2]: Mishchenko Y. (2013) A function for fastcomputation of large %
+ discrete Euclidean distance transforms in three or more
+ dimensions in Matlab. Signal, Image and Video Processing
+ [DOI:10.1007/s11760-012-0419-9](http://doi.org/10.1007/s11760-012-0419-9)

@@ -6,13 +6,13 @@
  * for usage see eudist_ut.m
  */
 
-void mexFunction(int nlhs, mxArray *plhs[],int nrhs, const mxArray *prhs[])
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-    int nThreads = 4;
+    int nThreads = 0; // auto
 
     if (nrhs<1 || nrhs>3) {
-        mexErrMsgTxt("There should be 1 to three inputs.");
+        mexErrMsgTxt("There should be one or two inputs. 1/ mask, 2/ pixel size (optional)");
     }
 
     /* Check data types of the input arguments. */
