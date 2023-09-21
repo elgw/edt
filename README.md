@@ -34,12 +34,12 @@ For a `1042x1024x60` image with isotropic pixels, on an AMD RYZEN
 3700X
 
 
-| Method                 | Time [s] | ref    |
-| -------                | -------- | -----  |
-| eudist                 |  0.7     |        |
-| bwdist                 |  1.0     | MATLAB |
-| bwdistsc               |  5.0     | [^2]   |
-| distance_transform_edt |  5.4     | [^3]   |
+| Method                 | Time [s] | Note            |
+| -------                | -------- | -----           |
+| eudist                 |  0.7     | This            |
+| bwdist                 |  1.0     | MATLAB [^4]     |
+| bwdistsc               |  5.0     | For MATLAB [^2] |
+| distance_transform_edt |  5.4     | SciPy [^3]      |
 
 
 ![2D timings](doc/timings_2D.png)
@@ -70,3 +70,5 @@ more exotic cases better.
  Downloaded from [https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio]
 
 [^3]: [https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.distance_transform_edt.html]
+
+[^4] [https://se.mathworks.com/help/images/ref/bwdist.html]
