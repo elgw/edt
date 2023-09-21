@@ -33,12 +33,13 @@ Differences to [^1]
 For a `1042x1024x60` image with isotropic pixels, on an AMD RYZEN
 3700X
 
-```
-eudist:                  0.7 s
-bwdist:                  1.0 s (MATLAB)
-bwdistsc:                5.0 s ([^2])
-distance_transform_edt:  5.4 s (SCIPY)
-```
+
+| Method                 | Time [s] | ref    |
+| -------                | -------- | -----  |
+| eudist                 |  0.7     |        |
+| bwdist                 |  1.0     | MATLAB |
+| bwdistsc               |  5.0     | [^2]   |
+| distance_transform_edt |  5.4     | [^3]   |
 
 
 ![2D timings](doc/timings_2D.png)
@@ -67,3 +68,5 @@ more exotic cases better.
  dimensions in Matlab. Signal, Image and Video Processing
  [DOI:10.1007/s11760-012-0419-9](http://doi.org/10.1007/s11760-012-0419-9)
  Downloaded from [https://se.mathworks.com/matlabcentral/fileexchange/15455-3d-euclidean-distance-transform-for-variable-data-aspect-ratio]
+
+[^3]: [https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.distance_transform_edt.html]
