@@ -35,7 +35,7 @@ AMD Ryzen 3700X:
 
 | Method                 | Time [s] | Dimensions | Anisotropic | Note              |
 | ----                   | ----     | -----      | ---         | ---               |
-| eudist                 |  0.6     | 1D,2D, 3D  | YES         | This [^1]         |
+| eudist                 |  0.6     | 1D, 2D, 3D | YES         | This [^1]         |
 | bwdist                 |  1.0     | nD         | NO          | MATLAB [^4]       |
 | bwdistsc               |  5.0     | 1D, 2D, 3D | YES         | On MATLAB FX [^2] |
 | distance_transform_edt |  5.4     | nD         | YES         | SciPy [^3]        |
