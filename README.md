@@ -33,12 +33,12 @@ For a $`1042\times1024\times60`$ image with isotropic pixels, on an
 AMD Ryzen 3700X:
 
 
-| Method                 | Time [s] | Note              |
-| ----                   | ----     | -----             |
-| eudist                 |  0.6     | This [^1]         |
-| bwdist                 |  1.0     | MATLAB [^4]       |
-| bwdistsc               |  5.0     | On MATLAB FX [^2] |
-| distance_transform_edt |  5.4     | SciPy [^3]        |
+| Method                 | Time [s] | Dimensions | Anisotropic | Note              |
+| ----                   | ----     | -----      | ---         | ---               |
+| eudist                 |  0.6     | 1D,2D, 3D  | YES         | This [^1]         |
+| bwdist                 |  1.0     | nD         | NO          | MATLAB [^4]       |
+| bwdistsc               |  5.0     | 1D, 2D, 3D | YES         | On MATLAB FX [^2] |
+| distance_transform_edt |  5.4     | nD         | YES         | SciPy [^3]        |
 
 
 ![2D timings](doc/timings_2D.png)
